@@ -386,6 +386,8 @@ export default function App() {
           onClose={() => setDrawerOpen(false)}
           onNavigate={navigate}
           activeView={activeView}
+          user={user}
+          onLogout={handleLogout}
         />
       )}
 

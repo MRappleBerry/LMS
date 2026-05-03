@@ -45,12 +45,17 @@ const DRAWER_ITEMS = [
   },
 ]
 
-export default function Drawer({ open, onClose, onNavigate, activeView }) {
+export default function Drawer({ open, onClose, onNavigate, activeView, user, onLogout }) {
   if (!open) return null
 
   function nav(id) {
     onNavigate(id)
     onClose()
+  }
+
+  function handleLogout() {
+    onClose()
+    onLogout && onLogout()
   }
 
   return (
@@ -66,12 +71,16 @@ export default function Drawer({ open, onClose, onNavigate, activeView }) {
         {/* Header */}
         <div className="p-5 pt-14 border-b border-white/[0.05]">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-900/40">
-              AJ
-            </div>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name || 'User'} className="w-12 h-12 rounded-2xl object-cover shadow-lg" />
+            ) : (
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-indigo-900/40">
+                {user ? (user.name || 'U').slice(0, 1).toUpperCase() : '?'}
+              </div>
+            )}
             <div>
-              <div className="font-semibold text-md-onsurf">Alex Johnson</div>
-              <div className="text-xs text-md-onsurfvar">3rd Year • Law Student</div>
+              <div className="font-semibold text-md-onsurf">{user?.name || 'Guest'}</div>
+              <div className="text-xs text-md-onsurfvar">{user?.email || 'Not signed in'}</div>
             </div>
           </div>
 
@@ -116,7 +125,28 @@ export default function Drawer({ open, onClose, onNavigate, activeView }) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-white/[0.05]">
+        <div className="p-4 border-t border-white/[0.05] space-y-2">
+          {user ? (
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 shrink-0">
+                <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+              </svg>
+              Sign out
+            </button>
+          ) : (
+            <button
+              onClick={() => { onClose(); window.location.href = '/login' }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl text-sm font-medium text-md-primary hover:bg-md-primary/10 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 shrink-0">
+                <path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z" />
+              </svg>
+              Sign in with Google
+            </button>
+          )}
           <div className="text-[10px] text-md-onsurfvar text-center">LexisAI v1.0 • May 2026</div>
         </div>
       </div>
