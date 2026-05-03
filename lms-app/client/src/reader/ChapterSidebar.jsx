@@ -14,6 +14,7 @@ function ChapterSidebarBase({
   onYearFilterChange,
   subjects = [],
   onSubjectNavigate,
+  yearOptions = [],
 }) {
   const { isBookmarked } = useReaderState()
   const scrollRef = useRef(null)
@@ -25,7 +26,7 @@ function ChapterSidebarBase({
     return initial
   })
 
-  const YEAR_OPTIONS = ['All', '1st Year', '2nd Year', '3rd Year', '4th Year']
+  const YEAR_OPTIONS = ['All', ...(yearOptions?.map(y => y.label) || ['1st Year', '2nd Year', '3rd Year', '4th Year'])]
 
   const chapters = useMemo(() => {
     const source = subjectMeta.chapters || []
@@ -39,9 +40,9 @@ function ChapterSidebarBase({
   }, [subjectMeta, yearFilter])
 
   const filteredSubjects = useMemo(() => {
-    if (!subjects?.length) return [subjectMeta]
+    if (!subjects?.length) return [{ id: subjectMeta.subject, title: subjectMeta.title, yearLevel: subjectMeta.yearLevel }]
     if (yearFilter === 'All') return subjects
-    return subjects.filter(s => s.yearLevel === yearFilter)
+    return subjects.filter(s => (s.yearLevel || '').toLowerCase() === yearFilter.toLowerCase())
   }, [subjects, subjectMeta, yearFilter])
 
   function toggleChapter(id) {
@@ -108,10 +109,10 @@ function ChapterSidebarBase({
         <div className="mt-3 space-y-1">
           {filteredSubjects.map(s => (
             <button
-              key={s.subject}
-              onClick={() => onSubjectNavigate?.(s.subject)}
+              key={s.id || s.subject}
+              onClick={() => onSubjectNavigate?.(s.id || s.subject)}
               className={`w-full px-2.5 py-2 rounded-lg text-left text-xs border transition-colors ${
-                s.subject === subjectMeta.subject
+                (s.id || s.subject) === subjectMeta.subject
                   ? 'bg-md-primarycon border-md-primary/50 text-md-onprimarycon'
                   : 'bg-md-surf3 border-md-outline/40 text-md-onsurfvar hover:text-md-onsurf'
               }`}

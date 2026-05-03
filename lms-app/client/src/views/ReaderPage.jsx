@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getAllSubjects, getDefaultRoute, getSubjectMeta, loadChapterContent } from '../data/books/catalog'
+import { buildDummyChapter, getDefaultRoute, getSubjectMeta } from '../data/books/catalog'
+import { fetchChaptersBySubject, fetchSubjectsByYear, fetchTopic, fetchYears } from '../lib/curriculumApi'
 import { ReaderStateProvider, useReaderState } from '../reader/ReaderStateContext'
 import ChapterSidebar from '../reader/ChapterSidebar'
 import ReaderContent from '../reader/ReaderContent'
 import AIAssistantPanel from '../reader/AIAssistantPanel'
 
 function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, onCloseMobileNav }) {
+  const [years, setYears] = useState([])
+  const [subjects, setSubjects] = useState([])
+  const [subjectMeta, setSubjectMeta] = useState(null)
   const [chapter, setChapter] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -18,35 +22,93 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
 
   const { addHighlight, markSectionRead, recordQuizResult, getLearningInsights, isSectionRead } = useReaderState()
 
-  const subjectMeta = useMemo(() => getSubjectMeta(subject), [subject])
-  const allSubjects = useMemo(() => getAllSubjects(), [])
+  const fallbackMeta = useMemo(() => getSubjectMeta(subject), [subject])
+  const resolvedSubjectMeta = subjectMeta || fallbackMeta
   const learningInsights = useMemo(() => {
-    if (!subjectMeta) return null
-    return getLearningInsights(subjectMeta)
-  }, [subjectMeta, getLearningInsights, progress, chapterId])
+    if (!resolvedSubjectMeta) return null
+    return getLearningInsights(resolvedSubjectMeta)
+  }, [resolvedSubjectMeta, getLearningInsights, progress, chapterId])
+
+  function yearLabelToParam(label) {
+    if (!label || label === 'All') return null
+    if (label.startsWith('1')) return 1
+    if (label.startsWith('2')) return 2
+    if (label.startsWith('3')) return 3
+    if (label.startsWith('4')) return 4
+    return null
+  }
 
   useEffect(() => {
-    if (!subjectMeta) return
+    let mounted = true
+    fetchYears()
+      .then(data => { if (mounted) setYears(data) })
+      .catch(() => { if (mounted) setYears([{ id: 1, label: '1st Year' }, { id: 2, label: '2nd Year' }, { id: 3, label: '3rd Year' }, { id: 4, label: '4th Year' }]) })
+    return () => { mounted = false }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    const year = yearLabelToParam(yearFilter)
+    fetchSubjectsByYear(year)
+      .then(list => {
+        if (!mounted) return
+        setSubjects(list)
+      })
+      .catch(() => {
+        if (!mounted) return
+        const local = Object.values({ [subject]: fallbackMeta }).filter(Boolean).map(s => ({ id: s.subject, title: s.title, yearLevel: s.yearLevel }))
+        setSubjects(local)
+      })
+    return () => { mounted = false }
+  }, [yearFilter, subject, fallbackMeta])
+
+  useEffect(() => {
+    let mounted = true
+    fetchChaptersBySubject(subject)
+      .then(data => {
+        if (!mounted) return
+        setSubjectMeta({
+          subject: data.subject,
+          title: data.title,
+          yearLevel: data.yearLevel,
+          chapters: data.chapters,
+        })
+      })
+      .catch(() => {
+        if (!mounted) return
+        if (fallbackMeta) setSubjectMeta(fallbackMeta)
+      })
+    return () => { mounted = false }
+  }, [subject, fallbackMeta])
+
+  useEffect(() => {
+    if (!resolvedSubjectMeta) return
     let mounted = true
 
     async function fetchChapter() {
       setLoading(true)
       setError('')
-      const data = await loadChapterContent(subject, chapterId)
-      if (!mounted) return
-      setChapter(data)
-      setLoading(false)
+      try {
+        const data = await fetchTopic(subject, chapterId)
+        if (!mounted) return
+        setChapter(data)
+      } catch {
+        if (!mounted) return
+        setChapter(buildDummyChapter(subject, chapterId))
+      } finally {
+        if (mounted) setLoading(false)
+      }
     }
 
     fetchChapter()
     return () => { mounted = false }
-  }, [subject, chapterId, subjectMeta])
+  }, [subject, chapterId, resolvedSubjectMeta, yearFilter])
 
   useEffect(() => {
     document.documentElement.style.setProperty('--reader-progress', `${progress}%`)
   }, [progress])
 
-  if (!subjectMeta) {
+  if (!resolvedSubjectMeta) {
     const fallback = getDefaultRoute()
     return (
       <div className="h-full flex items-center justify-center px-6 text-center">
@@ -71,10 +133,29 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
 
   function navigateSubject(nextSubject) {
     if (!nextSubject) return
-    const meta = getSubjectMeta(nextSubject)
-    const firstChapterId = meta?.chapters?.[0]?.id || '1'
-    onNavigatePath(`/course/${nextSubject}/chapter/${firstChapterId}`)
-    onCloseMobileNav?.()
+    fetchChaptersBySubject(nextSubject)
+      .then(data => {
+        const firstChapterId = data?.chapters?.[0]?.id || '1'
+        onNavigatePath(`/course/${nextSubject}/chapter/${firstChapterId}`)
+        onCloseMobileNav?.()
+      })
+      .catch(() => {
+        const meta = getSubjectMeta(nextSubject)
+        const firstChapterId = meta?.chapters?.[0]?.id || '1'
+        onNavigatePath(`/course/${nextSubject}/chapter/${firstChapterId}`)
+        onCloseMobileNav?.()
+      })
+  }
+
+  function handleYearFilterChange(next) {
+    setYearFilter(next)
+    const year = yearLabelToParam(next)
+    if (!year) return
+    fetchSubjectsByYear(year).then(list => {
+      if (!list?.length) return
+      if (list.some(s => s.id === subject)) return
+      navigateSubject(list[0].id)
+    }).catch(() => {})
   }
 
   function jumpToSection(sectionId) {
@@ -143,7 +224,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
   return (
     <div className="h-full min-h-0 flex overflow-hidden">
       <ChapterSidebar
-        subjectMeta={subjectMeta}
+        subjectMeta={resolvedSubjectMeta}
         chapterId={chapterId}
         activeSectionId={activeSectionId}
         onNavigateChapter={navigateChapter}
@@ -153,14 +234,15 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
         learningInsights={learningInsights}
         isSectionRead={isSectionRead}
         yearFilter={yearFilter}
-        onYearFilterChange={setYearFilter}
-        subjects={allSubjects}
+        onYearFilterChange={handleYearFilterChange}
+        subjects={subjects}
+        yearOptions={years}
       />
 
       {mobileNavOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <ChapterSidebar
-            subjectMeta={subjectMeta}
+            subjectMeta={resolvedSubjectMeta}
             chapterId={chapterId}
             activeSectionId={activeSectionId}
             onNavigateChapter={navigateChapter}
@@ -170,8 +252,9 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
             learningInsights={learningInsights}
             isSectionRead={isSectionRead}
             yearFilter={yearFilter}
-            onYearFilterChange={setYearFilter}
-            subjects={allSubjects}
+            onYearFilterChange={handleYearFilterChange}
+            subjects={subjects}
+            yearOptions={years}
           />
           <button
             aria-label="Close chapter navigation"
@@ -228,7 +311,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
               onProgress={setProgress}
               barExamMode={barExamMode}
               yearFilter={yearFilter}
-              subjectYearLevel={subjectMeta.yearLevel}
+              subjectYearLevel={resolvedSubjectMeta.yearLevel}
               onCaseExplain={handleCaseExplain}
               onRequestPractice={handlePractice}
               onQuizResult={recordQuizResult}
