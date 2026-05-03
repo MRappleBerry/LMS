@@ -98,7 +98,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
   }
 
   return (
-    <div className="h-full flex overflow-hidden">
+    <div className="h-full min-h-0 flex overflow-hidden">
       <ChapterSidebar
         subjectMeta={subjectMeta}
         chapterId={chapterId}
@@ -127,7 +127,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
       )}
 
       {loading && (
-        <div className="flex-1 p-8 space-y-4">
+        <div className="flex-1 min-h-0 overflow-y-auto p-8 space-y-4">
           <div className="skeleton h-6 w-56" />
           <div className="skeleton h-4 w-3/4" />
           <div className="skeleton h-4 w-full" />
@@ -136,11 +136,11 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
       )}
 
       {error && !loading && (
-        <div className="flex-1 flex items-center justify-center text-md-error text-sm">{error}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto flex items-center justify-center text-md-error text-sm">{error}</div>
       )}
 
       {chapter && !loading && (
-        <div className="flex-1 min-w-0 h-full flex flex-col">
+        <div className="flex-1 min-w-0 h-full min-h-0 flex flex-col">
           {chapter.isDummy && (
             <div className="shrink-0 px-4 py-2 text-[11px] text-amber-300 bg-amber-500/10 border-b border-amber-500/30">
               Draft content loaded: this chapter is currently using dummy text.

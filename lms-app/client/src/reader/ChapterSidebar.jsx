@@ -56,8 +56,8 @@ function ChapterSidebarBase({
   }, [activeSectionId, chapterId])
 
   const asideClass = mode === 'mobile'
-    ? 'w-72 max-w-[84vw] shrink-0 border-r border-md-outline/50 bg-md-surf2 h-full overflow-y-auto'
-    : 'hidden lg:block w-72 shrink-0 border-r border-md-outline/50 bg-md-surf2/70 backdrop-blur sticky top-0 h-full overflow-y-auto'
+    ? 'w-72 max-w-[84vw] shrink-0 border-r border-md-outline/50 bg-md-surf2 h-full min-h-0 overflow-y-auto'
+    : 'hidden lg:block w-72 shrink-0 border-r border-md-outline/50 bg-md-surf2/70 backdrop-blur sticky top-0 h-full min-h-0 overflow-y-auto'
 
   return (
     <aside ref={scrollRef} onScroll={handleSidebarScroll} className={asideClass}>

@@ -110,7 +110,7 @@ function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickE
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:w-[320px] xl:w-[360px] shrink-0 border-l border-md-outline/50 bg-md-surf2/70 backdrop-blur h-full sticky top-0 flex-col">
+      <aside className="hidden lg:flex lg:w-[320px] xl:w-[360px] shrink-0 border-l border-md-outline/50 bg-md-surf2/70 backdrop-blur h-full min-h-0 sticky top-0 overflow-hidden flex-col">
         {panelContent}
       </aside>
 

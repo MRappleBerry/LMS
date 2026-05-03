@@ -157,7 +157,7 @@ export default function App() {
         className={`absolute inset-x-0 scrollbar-hide ${route.type === 'reader' ? 'overflow-hidden' : 'overflow-y-auto'}`}
         style={{ top: 56, bottom: 64 }}
       >
-        <div key={viewKey} className="animate-view-in min-h-full">
+        <div key={viewKey} className={`animate-view-in ${route.type === 'reader' ? 'h-full min-h-0' : 'min-h-full'}`}>
           {route.type === 'reader'
             ? (
               <ReaderPage
