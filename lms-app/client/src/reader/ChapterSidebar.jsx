@@ -8,6 +8,8 @@ function ChapterSidebarBase({
   onNavigateChapter,
   onJumpSection,
   mode = 'desktop',
+  learningInsights,
+  isSectionRead,
 }) {
   const { isBookmarked } = useReaderState()
   const scrollRef = useRef(null)
@@ -64,6 +66,28 @@ function ChapterSidebarBase({
       <div className="p-4 border-b border-md-outline/50">
         <div className="text-xs uppercase tracking-widest text-md-onsurfvar">Subject</div>
         <h2 className="mt-1 text-sm font-semibold text-md-onsurf">{subjectMeta.title}</h2>
+
+        {learningInsights && (
+          <div className="mt-3 bg-md-surf3 border border-md-outline/40 rounded-xl p-3 space-y-2">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-md-onsurfvar">Progress</span>
+              <span className="text-md-primary font-semibold">{learningInsights.progressPct}%</span>
+            </div>
+            <div className="h-1.5 bg-md-surf rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-md-primary to-md-secondary" style={{ width: `${learningInsights.progressPct}%` }} />
+            </div>
+            {learningInsights.recommendedNext && (
+              <div className="text-[11px] text-md-onsurfvar">
+                Next: <span className="text-md-onsurf">{learningInsights.recommendedNext.title}</span>
+              </div>
+            )}
+            {learningInsights.weakAreas?.length > 0 && (
+              <div className="text-[11px] text-md-onsurfvar">
+                Weak: <span className="text-red-300">{learningInsights.weakAreas[0].title}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="p-2">
@@ -89,6 +113,7 @@ function ChapterSidebarBase({
                     const sectionKey = `${subjectMeta.subject}:${ch.id}:${sec.id}`
                     const active = isActiveChapter && activeSectionId === sec.id
                     const bookmarked = isBookmarked(sectionKey)
+                    const read = isSectionRead?.(sectionKey)
                     return (
                       <button
                         key={sec.id}
@@ -98,7 +123,7 @@ function ChapterSidebarBase({
                           active ? 'bg-md-surf3 text-md-onsurf' : 'text-md-onsurfvar hover:text-md-onsurf hover:bg-md-surf3/70'
                         }`}
                       >
-                        <span className="mt-0.5">{bookmarked ? '★' : '•'}</span>
+                        <span className="mt-0.5">{bookmarked ? '★' : read ? '✓' : '•'}</span>
                         <span className="leading-relaxed">{sec.heading}</span>
                       </button>
                     )

@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useState } from 'react'
 import { explainWithAi } from '../lib/readerAi'
 import { useReaderState } from './ReaderStateContext'
 
-function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickExplain }) {
+function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickExplain, learningInsights }) {
   const { getSectionNote, setSectionNote } = useReaderState()
   const [messages, setMessages] = useState([
     {
@@ -92,6 +92,14 @@ function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickE
           <button onClick={() => onQuickExplain('Convert this section into bar exam issue-spotting pointers.')} className="ripple-root text-left px-3 py-2 rounded-xl text-xs bg-md-surf3 text-md-onsurfvar hover:text-md-onsurf border border-md-outline/50">
             Bar exam issue spotting
           </button>
+          <button onClick={() => onQuickExplain('Generate one new bar-style MCQ and one essay question from this section with concise answer keys.')} className="ripple-root text-left px-3 py-2 rounded-xl text-xs bg-md-surf3 text-md-onsurfvar hover:text-md-onsurf border border-md-outline/50">
+            Generate practice questions
+          </button>
+          {learningInsights?.weakAreas?.length > 0 && (
+            <button onClick={() => onQuickExplain(`Coach me on this weak area: ${learningInsights.weakAreas[0].title}. Explain mistakes and how to avoid them in bar answers.`)} className="ripple-root text-left px-3 py-2 rounded-xl text-xs bg-red-900/20 text-red-200 hover:text-red-100 border border-red-900/40">
+              Coach weak area: {learningInsights.weakAreas[0].title}
+            </button>
+          )}
         </div>
       </div>
 

@@ -13,10 +13,15 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
   const [selection, setSelection] = useState(null)
   const [request, setRequest] = useState(null)
   const [progress, setProgress] = useState(0)
+  const [barExamMode, setBarExamMode] = useState(true)
 
-  const { addHighlight } = useReaderState()
+  const { addHighlight, markSectionRead, recordQuizResult, getLearningInsights, isSectionRead } = useReaderState()
 
   const subjectMeta = useMemo(() => getSubjectMeta(subject), [subject])
+  const learningInsights = useMemo(() => {
+    if (!subjectMeta) return null
+    return getLearningInsights(subjectMeta)
+  }, [subjectMeta, getLearningInsights, progress, chapterId])
 
   useEffect(() => {
     if (!subjectMeta) return
@@ -73,7 +78,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
     setRequest({
       context: text,
       sectionId,
-      instruction: 'Explain this in simple terms for a law student. Include doctrine, bar relevance, and one memory tip.',
+      instruction: 'Explain this paragraph in simple terms, then give one concrete legal example, then explain bar exam relevance and a concise model answer approach.',
       at: Date.now(),
     })
     setSelection(null)
@@ -97,6 +102,30 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
     })
   }
 
+  function handleCaseExplain(cs, section) {
+    const context = `Case: ${cs.name}\nDoctrine: ${cs.doctrine || ''}\nFacts: ${cs.facts || ''}\nSection: ${section.heading}`
+    setRequest({
+      context,
+      sectionId: section.id,
+      instruction: 'Explain this case in simple terms for a law student, identify the doctrine, and add one bar exam issue-spotting tip.',
+      at: Date.now(),
+    })
+  }
+
+  function handlePractice(sec) {
+    setRequest({
+      context: sec.content,
+      sectionId: sec.id,
+      instruction: 'Generate 2 bar-style practice questions with concise model answers and common mistakes.',
+      at: Date.now(),
+    })
+  }
+
+  function handleActiveSectionChange(sectionId) {
+    setActiveSectionId(sectionId)
+    markSectionRead(`${subject}:${chapterId}:${sectionId}`)
+  }
+
   return (
     <div className="h-full min-h-0 flex overflow-hidden">
       <ChapterSidebar
@@ -106,6 +135,8 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
         onNavigateChapter={navigateChapter}
         onJumpSection={jumpToSection}
         mode="desktop"
+        learningInsights={learningInsights}
+        isSectionRead={isSectionRead}
       />
 
       {mobileNavOpen && (
@@ -117,6 +148,8 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
             onNavigateChapter={navigateChapter}
             onJumpSection={jumpToSection}
             mode="mobile"
+            learningInsights={learningInsights}
+            isSectionRead={isSectionRead}
           />
           <button
             aria-label="Close chapter navigation"
@@ -146,14 +179,27 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
               Draft content loaded: this chapter is currently using dummy text.
             </div>
           )}
+          <div className="shrink-0 px-4 py-2 border-b border-md-outline/40 flex items-center justify-between">
+            <span className="text-xs text-md-onsurfvar">Learning System</span>
+            <button
+              onClick={() => setBarExamMode(v => !v)}
+              className={`text-xs px-2.5 py-1 rounded-lg border ${barExamMode ? 'bg-md-primarycon border-md-primary/50 text-md-onprimarycon' : 'bg-md-surf2 border-md-outline/50 text-md-onsurfvar'}`}
+            >
+              {barExamMode ? 'Bar Exam Mode: ON' : 'Bar Exam Mode: OFF'}
+            </button>
+          </div>
           <div className="flex-1 min-h-0">
             <ReaderContent
               chapter={chapter}
               subject={subject}
               chapterId={chapterId}
               onSelection={setSelection}
-              onActiveSectionChange={setActiveSectionId}
+              onActiveSectionChange={handleActiveSectionChange}
               onProgress={setProgress}
+              barExamMode={barExamMode}
+              onCaseExplain={handleCaseExplain}
+              onRequestPractice={handlePractice}
+              onQuizResult={recordQuizResult}
             />
           </div>
         </div>
@@ -165,6 +211,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
         sectionId={activeSectionId}
         request={request}
         onQuickExplain={quickExplain}
+        learningInsights={learningInsights}
       />
 
       {selection?.text && (

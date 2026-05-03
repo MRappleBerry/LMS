@@ -36,10 +36,16 @@ function ReaderContentBase({
   onSelection,
   onActiveSectionChange,
   onProgress,
+  barExamMode,
+  onCaseExplain,
+  onRequestPractice,
+  onQuizResult,
 }) {
   const { toggleBookmark, isBookmarked, getHighlights } = useReaderState()
   const containerRef = useRef(null)
   const [activeSectionId, setActiveSectionId] = useState(chapter.sections?.[0]?.id || '')
+  const [quizChoice, setQuizChoice] = useState({})
+  const [quizShown, setQuizShown] = useState({})
 
   useEffect(() => {
     setActiveSectionId(chapter.sections?.[0]?.id || '')
@@ -87,6 +93,38 @@ function ReaderContentBase({
 
   const sections = useMemo(() => chapter.sections || [], [chapter])
 
+  function withBarMeta(sec) {
+    return {
+      ...sec,
+      barExam: sec.barExam || {
+        frequency: 'Medium',
+        commonTraps: ['Confusing requisites with effects', 'Skipping key exceptions'],
+        sampleAnswer: 'State the doctrine, enumerate requisites, apply to facts, and conclude briefly.',
+      },
+      cases: sec.cases || [
+        {
+          name: 'Landmark Doctrine Case',
+          doctrine: 'Core doctrine application',
+          facts: 'Placeholder facts for case-learning mode.',
+        },
+      ],
+      quiz: sec.quiz || {
+        question: `Which statement best captures the core doctrine in "${sec.heading}"?`,
+        options: ['A principle with no exceptions', 'A rule requiring analysis of requisites and exceptions', 'A purely procedural guideline', 'A doctrine irrelevant to bar exams'],
+        answerIndex: 1,
+        explanation: 'Bar exam answers are strongest when you identify requisites and exceptions before applying facts.',
+      },
+    }
+  }
+
+  function submitQuiz(sectionKey, quiz) {
+    const selected = quizChoice[sectionKey]
+    if (selected === undefined || selected === null) return
+    const correct = Number(selected) === Number(quiz.answerIndex)
+    setQuizShown(prev => ({ ...prev, [sectionKey]: true }))
+    onQuizResult?.(sectionKey, correct)
+  }
+
   return (
     <section className="flex-1 min-w-0 relative h-full">
       <div className="absolute top-0 left-0 right-0 h-1 bg-md-surf3 z-20">
@@ -109,9 +147,12 @@ function ReaderContentBase({
           </header>
 
           <div className="space-y-12">
-            {sections.map(sec => {
+            {sections.map(raw => {
+              const sec = withBarMeta(raw)
               const sectionKey = `${subject}:${chapterId}:${sec.id}`
               const highlights = getHighlights(sectionKey)
+              const answerShown = Boolean(quizShown[sectionKey])
+              const selected = quizChoice[sectionKey]
               return (
                 <section key={sec.id} id={`sec-${sec.id}`} data-section-id={sec.id} className="scroll-mt-24">
                   <div className="flex items-start gap-3 mb-3">
@@ -130,6 +171,86 @@ function ReaderContentBase({
 
                   <div className="text-[1.06rem] leading-8 text-md-onsurf/95 font-reader whitespace-pre-line">
                     {renderWithHighlights(sec.content, highlights)}
+                  </div>
+
+                  {barExamMode && (
+                    <div className="mt-4 bg-md-surf2 border border-md-outline/50 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs uppercase tracking-widest text-md-onsurfvar">Bar Exam Mode</div>
+                        <span className={`text-[11px] px-2 py-1 rounded-full ${
+                          sec.barExam.frequency === 'High' ? 'bg-red-900/30 text-red-300' :
+                          sec.barExam.frequency === 'Medium' ? 'bg-amber-900/30 text-amber-300' :
+                          'bg-emerald-900/30 text-emerald-300'
+                        }`}>Frequency: {sec.barExam.frequency}</span>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold text-md-onsurf mb-1">Common Traps</p>
+                        <ul className="text-xs text-md-onsurfvar space-y-1 list-disc pl-4">
+                          {sec.barExam.commonTraps.map((trap, idx) => <li key={idx}>{trap}</li>)}
+                        </ul>
+                      </div>
+
+                      <div className="text-xs text-md-onsurf">
+                        <span className="font-semibold">Sample Answer Strategy:</span> {sec.barExam.sampleAnswer}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-4 bg-md-surf2 border border-md-outline/50 rounded-2xl p-4 space-y-2">
+                    <div className="text-xs uppercase tracking-widest text-md-onsurfvar">Landmark Cases</div>
+                    {sec.cases.map((cs, i) => (
+                      <div key={`${cs.name}-${i}`} className="bg-md-surf3 border border-md-outline/40 rounded-xl p-3">
+                        <div className="text-sm text-md-onsurf font-semibold">{cs.name}</div>
+                        <div className="text-xs text-md-onsurfvar mt-1">Doctrine: {cs.doctrine}</div>
+                        {cs.facts && <div className="text-xs text-md-onsurfvar mt-1">Facts: {cs.facts}</div>}
+                        <button
+                          onClick={() => onCaseExplain?.(cs, sec)}
+                          className="mt-2 ripple-root px-3 py-1.5 text-xs rounded-lg bg-md-primarycon text-md-onprimarycon hover:bg-md-primarycon/80"
+                        >
+                          Explain Case Simply
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 bg-md-surf2 border border-md-outline/50 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs uppercase tracking-widest text-md-onsurfvar">Section Quiz</div>
+                      <button
+                        onClick={() => onRequestPractice?.(sec)}
+                        className="text-xs px-2.5 py-1 rounded-lg bg-md-primarycon text-md-onprimarycon hover:bg-md-primarycon/80"
+                      >
+                        AI Practice Question
+                      </button>
+                    </div>
+                    <p className="text-sm text-md-onsurf">{sec.quiz.question}</p>
+                    <div className="space-y-2">
+                      {sec.quiz.options.map((opt, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setQuizChoice(prev => ({ ...prev, [sectionKey]: i }))}
+                          className={`w-full text-left px-3 py-2 rounded-xl border text-xs transition-colors ${
+                            selected === i ? 'bg-md-primarycon text-md-onprimarycon border-md-primary/50' : 'bg-md-surf3 text-md-onsurfvar border-md-outline/40 hover:text-md-onsurf'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => submitQuiz(sectionKey, sec.quiz)}
+                        className="px-3 py-1.5 text-xs rounded-lg bg-md-primarydim text-white hover:bg-md-primary"
+                      >
+                        Submit Quiz
+                      </button>
+                      {answerShown && (
+                        <span className="text-xs text-md-onsurfvar">
+                          {selected === sec.quiz.answerIndex ? 'Correct.' : 'Not quite.'} {sec.quiz.explanation}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </section>
               )
