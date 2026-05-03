@@ -50,7 +50,7 @@ function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickE
   }, [messages])
 
   return (
-    <aside className="hidden xl:flex xl:w-[360px] shrink-0 border-l border-md-outline/50 bg-md-surf2/70 backdrop-blur h-full sticky top-0 flex-col">
+    <aside className="hidden lg:flex lg:w-[320px] xl:w-[360px] shrink-0 border-l border-md-outline/50 bg-md-surf2/70 backdrop-blur h-full sticky top-0 flex-col">
       <div className="px-4 py-3 border-b border-md-outline/50">
         <div className="text-sm font-semibold text-md-onsurf">AI Assistant</div>
         <div className="text-xs text-md-onsurfvar mt-0.5">{lastMode}</div>
