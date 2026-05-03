@@ -81,6 +81,7 @@ export default function App() {
   const [route,      setRoute]      = useState(() => parsePath(window.location.pathname))
   const [viewKey,    setViewKey]    = useState(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [readerNavOpen, setReaderNavOpen] = useState(false)
   const fabRef = useRef(null)
 
   useEffect(() => {
@@ -107,6 +108,7 @@ export default function App() {
     window.history.pushState({}, '', path)
     setRoute(parsePath(path))
     setViewKey(k => k + 1)
+    setReaderNavOpen(false)
   }, [])
 
   /* Navigate with a re-key so view-enter animation fires every time */
@@ -143,11 +145,16 @@ export default function App() {
   return (
     <div className="fixed inset-0 bg-md-bg text-md-onsurf overflow-hidden">
       {/* Top App Bar */}
-      <TopAppBar activeView={activeView} subject={route.subject} chapterId={route.chapterId} />
+      <TopAppBar
+        activeView={activeView}
+        subject={route.subject}
+        chapterId={route.chapterId}
+        onReaderMenu={() => setReaderNavOpen(true)}
+      />
 
       {/* Scrollable content between top bar and bottom nav */}
       <main
-        className="absolute inset-x-0 overflow-y-auto scrollbar-hide"
+        className={`absolute inset-x-0 scrollbar-hide ${route.type === 'reader' ? 'overflow-hidden' : 'overflow-y-auto'}`}
         style={{ top: 56, bottom: 64 }}
       >
         <div key={viewKey} className="animate-view-in min-h-full">
@@ -157,6 +164,8 @@ export default function App() {
                 subject={route.subject}
                 chapterId={route.chapterId}
                 onNavigatePath={navigatePath}
+                mobileNavOpen={readerNavOpen}
+                onCloseMobileNav={() => setReaderNavOpen(false)}
               />
             )
             : (views[activeView] ?? views.dashboard)

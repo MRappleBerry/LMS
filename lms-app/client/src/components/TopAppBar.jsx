@@ -17,7 +17,7 @@ function formatSubject(subject) {
     .join(' ')
 }
 
-export default function TopAppBar({ activeView, onSearch, onNotif, subject, chapterId }) {
+export default function TopAppBar({ activeView, onSearch, onNotif, subject, chapterId, onReaderMenu }) {
   const title = VIEW_TITLES[activeView] ?? 'LexisAI'
   const isHome = activeView === 'dashboard'
   const isReader = activeView === 'reader'
@@ -29,6 +29,17 @@ export default function TopAppBar({ activeView, onSearch, onNotif, subject, chap
     <header className="fixed top-0 inset-x-0 z-40 glass border-b border-white/[0.04] h-14 flex items-center justify-between px-4 gap-3">
       {/* Left: Logo + Title */}
       <div className="flex items-center gap-2.5 min-w-0">
+        {isReader && (
+          <button
+            onClick={onReaderMenu}
+            className="lg:hidden w-9 h-9 rounded-full flex items-center justify-center text-md-onsurfvar hover:text-md-onsurf hover:bg-white/[0.06] transition-colors"
+            aria-label="Open chapter navigation"
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+              <path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z" />
+            </svg>
+          </button>
+        )}
         <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-900/40">
           <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4">
             <path d="M11.5 2C6.81 2 3 5.81 3 10.5S6.81 19 11.5 19h.5v3c4.86-2.34 8-7 8-11.5C20 5.81 16.19 2 11.5 2zm1 14.5h-2v-2h2v2zm0-4h-2c0-3.25 3-3 3-5 0-1.1-.9-2-2-2s-2 .9-2 2h-2c0-2.21 1.79-4 4-4s4 1.79 4 4c0 2.5-3 2.75-3 5z" />

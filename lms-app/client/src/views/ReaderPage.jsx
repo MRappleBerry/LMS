@@ -5,7 +5,7 @@ import ChapterSidebar from '../reader/ChapterSidebar'
 import ReaderContent from '../reader/ReaderContent'
 import AIAssistantPanel from '../reader/AIAssistantPanel'
 
-function ReaderPageInner({ subject, chapterId, onNavigatePath }) {
+function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, onCloseMobileNav }) {
   const [chapter, setChapter] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -59,11 +59,13 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath }) {
   function navigateChapter(nextChapterId) {
     if (nextChapterId === chapterId) return
     onNavigatePath(`/course/${subject}/chapter/${nextChapterId}`)
+    onCloseMobileNav?.()
   }
 
   function jumpToSection(sectionId) {
     const target = document.getElementById(`sec-${sectionId}`)
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    onCloseMobileNav?.()
   }
 
   function explainSelection(text, sectionId) {
@@ -103,7 +105,26 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath }) {
         activeSectionId={activeSectionId}
         onNavigateChapter={navigateChapter}
         onJumpSection={jumpToSection}
+        mode="desktop"
       />
+
+      {mobileNavOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <ChapterSidebar
+            subjectMeta={subjectMeta}
+            chapterId={chapterId}
+            activeSectionId={activeSectionId}
+            onNavigateChapter={navigateChapter}
+            onJumpSection={jumpToSection}
+            mode="mobile"
+          />
+          <button
+            aria-label="Close chapter navigation"
+            className="flex-1 bg-black/60"
+            onClick={() => onCloseMobileNav?.()}
+          />
+        </div>
+      )}
 
       {loading && (
         <div className="flex-1 p-8 space-y-4">
