@@ -10,7 +10,9 @@ import Notes       from './views/Notes'
 import Settings    from './views/Settings'
 import ModuleGenerator from './views/ModuleGenerator'
 import ReaderPage from './views/ReaderPage'
-import { getDefaultRoute, getSubjectMeta } from './data/books/catalog'
+import YearPage from './views/YearPage'
+import SubjectPage from './views/SubjectPage'
+import { getSubjectMeta } from './data/books/catalog'
 
 /* FAB config per view -------------------------------------------------- */
 const FAB_CONFIG = {
@@ -37,12 +39,40 @@ function addRipple(e, el) {
 }
 
 function parsePath(pathname) {
-  const readerMatch = pathname.match(/^\/course\/([^/]+)\/chapter\/([^/]+)$/)
+  const yearMatch = pathname.match(/^\/year\/([^/]+)$/)
+  if (yearMatch) {
+    return {
+      type: 'year',
+      yearId: decodeURIComponent(yearMatch[1]),
+      pathname,
+    }
+  }
+
+  const readerMatch = pathname.match(/^\/subject\/([^/]+)\/chapter\/([^/]+)$/)
   if (readerMatch) {
     return {
       type: 'reader',
       subject: decodeURIComponent(readerMatch[1]),
       chapterId: decodeURIComponent(readerMatch[2]),
+      pathname,
+    }
+  }
+
+  const subjectMatch = pathname.match(/^\/subject\/([^/]+)$/)
+  if (subjectMatch) {
+    return {
+      type: 'subject',
+      subject: decodeURIComponent(subjectMatch[1]),
+      pathname,
+    }
+  }
+
+  const legacyMatch = pathname.match(/^\/course\/([^/]+)\/chapter\/([^/]+)$/)
+  if (legacyMatch) {
+    return {
+      type: 'legacy-reader',
+      subject: decodeURIComponent(legacyMatch[1]),
+      chapterId: decodeURIComponent(legacyMatch[2]),
       pathname,
     }
   }
@@ -88,14 +118,27 @@ export default function App() {
 
   useEffect(() => {
     if (window.location.pathname === '/') {
-      const fallback = getDefaultRoute()
-      const defaultPath = `/course/${fallback.subject}/chapter/${fallback.chapterId}`
+      const defaultPath = '/year/1'
       window.history.replaceState({}, '', defaultPath)
       setRoute(parsePath(defaultPath))
     }
 
+    if (window.location.pathname.match(/^\/course\/[^/]+\/chapter\/[^/]+$/)) {
+      const current = parsePath(window.location.pathname)
+      const next = `/subject/${current.subject}/chapter/${current.chapterId}`
+      window.history.replaceState({}, '', next)
+      setRoute(parsePath(next))
+    }
+
     function onPopstate() {
-      setRoute(parsePath(window.location.pathname))
+      const next = parsePath(window.location.pathname)
+      if (next.type === 'legacy-reader') {
+        const migrated = `/subject/${next.subject}/chapter/${next.chapterId}`
+        window.history.replaceState({}, '', migrated)
+        setRoute(parsePath(migrated))
+      } else {
+        setRoute(next)
+      }
       setViewKey(k => k + 1)
     }
 
@@ -103,7 +146,7 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopstate)
   }, [])
 
-  const activeView = route.type === 'reader' ? 'reader' : route.view
+  const activeView = ['reader', 'year', 'subject', 'legacy-reader'].includes(route.type) ? 'reader' : route.view
   const subjectMeta = route.type === 'reader' ? getSubjectMeta(route.subject) : null
 
   const navigatePath = useCallback((path) => {
@@ -124,8 +167,7 @@ export default function App() {
   const navigate = useCallback((id) => {
     if (id === 'more') { setDrawerOpen(true); return }
     if (id === 'reader') {
-      const fallback = getDefaultRoute()
-      navigatePath(`/course/${fallback.subject}/chapter/${fallback.chapterId}`)
+      navigatePath('/year/1')
     } else {
       navigatePath(buildPathFromView(id))
     }
@@ -189,9 +231,10 @@ export default function App() {
       {/* Top App Bar */}
       <TopAppBar
         activeView={activeView}
+        routeType={route.type}
         onSearch={handleSearch}
         subject={route.subject}
-        chapterId={route.chapterId}
+        chapterId={route.type === 'reader' ? route.chapterId : null}
         onReaderMenu={() => setReaderNavOpen(true)}
       />
 
@@ -211,6 +254,16 @@ export default function App() {
                 onCloseMobileNav={() => setReaderNavOpen(false)}
               />
             )
+            : route.type === 'year'
+              ? <YearPage yearId={route.yearId} onOpenSubject={(subjectId) => navigatePath(`/subject/${subjectId}`)} />
+              : route.type === 'subject'
+                ? (
+                  <SubjectPage
+                    subjectId={route.subject}
+                    onBackYear={(year) => navigatePath(`/year/${year || 1}`)}
+                    onOpenChapter={(subjectId, nextChapterId) => navigatePath(`/subject/${subjectId}/chapter/${nextChapterId}`)}
+                  />
+                )
             : (views[activeView] ?? views.dashboard)
           }
         </div>
@@ -263,7 +316,7 @@ export default function App() {
                   {readerMatches.map((item, idx) => (
                     <button
                       key={`${item.type}-${idx}`}
-                      onClick={() => navigatePath(`/course/${route.subject}/chapter/${item.chapterId}`)}
+                      onClick={() => navigatePath(`/subject/${route.subject}/chapter/${item.chapterId}`)}
                       className="w-full text-left px-3 py-2.5 rounded-xl text-sm text-md-onsurfvar hover:text-md-onsurf hover:bg-md-surf2 transition-colors"
                     >
                       {item.label}

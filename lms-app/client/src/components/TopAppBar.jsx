@@ -17,19 +17,26 @@ function formatSubject(subject) {
     .join(' ')
 }
 
-export default function TopAppBar({ activeView, onSearch, onNotif, subject, chapterId, onReaderMenu }) {
+export default function TopAppBar({ activeView, routeType, onSearch, onNotif, subject, chapterId, onReaderMenu }) {
   const title = VIEW_TITLES[activeView] ?? 'LexisAI'
   const isHome = activeView === 'dashboard'
   const isReader = activeView === 'reader'
+  const isChapterRoute = routeType === 'reader'
+  const isSubjectRoute = routeType === 'subject'
+  const isYearRoute = routeType === 'year'
   const readerTitle = isReader
-    ? `${formatSubject(subject) || 'Law Reader'} • Chapter ${chapterId || '-'}`
+    ? isYearRoute
+      ? 'Law Curriculum by Year'
+      : isSubjectRoute
+        ? `${formatSubject(subject) || 'Subject'} • Premium Track`
+        : `${formatSubject(subject) || 'Law Reader'} • Chapter ${chapterId || '-'}`
     : title
 
   return (
     <header className="fixed top-0 inset-x-0 z-40 glass border-b border-white/[0.04] h-14 flex items-center justify-between px-4 gap-3">
       {/* Left: Logo + Title */}
       <div className="flex items-center gap-2.5 min-w-0">
-        {isReader && (
+        {isReader && isChapterRoute && (
           <button
             onClick={onReaderMenu}
             className="lg:hidden w-9 h-9 rounded-full flex items-center justify-center text-md-onsurfvar hover:text-md-onsurf hover:bg-white/[0.06] transition-colors"

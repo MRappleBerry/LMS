@@ -1,3 +1,4 @@
+import axios from 'axios'
 import { useEffect, useMemo, useState } from 'react'
 import { buildDummyChapter, getDefaultRoute, getSubjectMeta } from '../data/books/catalog'
 import { fetchChaptersBySubject, fetchSubjectsByYear, fetchTopic, fetchYears } from '../lib/curriculumApi'
@@ -92,8 +93,13 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
         const data = await fetchTopic(subject, chapterId)
         if (!mounted) return
         setChapter(data)
-      } catch {
+      } catch (err) {
         if (!mounted) return
+        if (axios.isAxiosError(err) && err.response?.status === 402) {
+          const target = err.response?.data?.redirectTo || `/subject/${subject}`
+          onNavigatePath(target)
+          return
+        }
         setChapter(buildDummyChapter(subject, chapterId))
       } finally {
         if (mounted) setLoading(false)
@@ -115,7 +121,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
         <div>
           <p className="text-md-onsurfvar mb-3">Unknown subject route.</p>
           <button
-            onClick={() => onNavigatePath(`/course/${fallback.subject}/chapter/${fallback.chapterId}`)}
+            onClick={() => onNavigatePath(`/subject/${fallback.subject}/chapter/${fallback.chapterId}`)}
             className="px-4 py-2 rounded-xl bg-md-primarydim text-white text-sm"
           >
             Go to Reader Home
@@ -127,7 +133,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
 
   function navigateChapter(nextChapterId) {
     if (nextChapterId === chapterId) return
-    onNavigatePath(`/course/${subject}/chapter/${nextChapterId}`)
+    onNavigatePath(`/subject/${subject}/chapter/${nextChapterId}`)
     onCloseMobileNav?.()
   }
 
@@ -136,13 +142,13 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
     fetchChaptersBySubject(nextSubject)
       .then(data => {
         const firstChapterId = data?.chapters?.[0]?.id || '1'
-        onNavigatePath(`/course/${nextSubject}/chapter/${firstChapterId}`)
+        onNavigatePath(`/subject/${nextSubject}/chapter/${firstChapterId}`)
         onCloseMobileNav?.()
       })
       .catch(() => {
         const meta = getSubjectMeta(nextSubject)
         const firstChapterId = meta?.chapters?.[0]?.id || '1'
-        onNavigatePath(`/course/${nextSubject}/chapter/${firstChapterId}`)
+        onNavigatePath(`/subject/${nextSubject}/chapter/${firstChapterId}`)
         onCloseMobileNav?.()
       })
   }

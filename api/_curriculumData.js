@@ -10,6 +10,8 @@ const CURRICULUM = {
     {
       id: 'constitutional-law',
       title: 'Constitutional Law I',
+      description: 'Master constitutional structure, judicial review, and rights analysis through bar-focused doctrine and Philippine case method.',
+      price: 1499,
       year: 1,
       yearLevel: '1st Year',
       chapters: [
@@ -114,6 +116,8 @@ const CURRICULUM = {
     {
       id: 'obligations-and-contracts',
       title: 'Obligations and Contracts',
+      description: 'Build deep command of obligations, contracts, and remedies with practical issue-spotting and codal anchoring.',
+      price: 1699,
       year: 2,
       yearLevel: '2nd Year',
       chapters: [
@@ -170,10 +174,26 @@ function getSubjects(year) {
   return list.map(s => ({
     id: s.id,
     title: s.title,
+    description: s.description,
+    price: s.price,
     year: s.year,
     yearLevel: s.yearLevel,
     chapterCount: s.chapters.length,
   }))
+}
+
+function getSubjectSummary(subjectId) {
+  const subject = getSubjectById(subjectId)
+  if (!subject) return null
+  return {
+    id: subject.id,
+    title: subject.title,
+    description: subject.description,
+    price: subject.price,
+    year: subject.year,
+    yearLevel: subject.yearLevel,
+    chapterCount: subject.chapters.length,
+  }
 }
 
 function getSubjectById(subjectId) {
@@ -186,6 +206,8 @@ function getChapters(subjectId) {
   return {
     subject: subject.id,
     title: subject.title,
+    description: subject.description,
+    price: subject.price,
     year: subject.year,
     yearLevel: subject.yearLevel,
     chapters: subject.chapters.map(ch => ({
@@ -221,6 +243,7 @@ function getTopic(subjectId, chapterId) {
 module.exports = {
   getYears,
   getSubjects,
+  getSubjectSummary,
   getChapters,
   getTopic,
 }

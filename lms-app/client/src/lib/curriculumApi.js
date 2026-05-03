@@ -2,7 +2,20 @@ import axios from 'axios'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 const CACHE_KEY = 'lexisai.curriculum.cache.v1'
+const USER_KEY = 'lexisai.user.id'
 const mem = new Map()
+
+function getUserId() {
+  try {
+    const existing = localStorage.getItem(USER_KEY)
+    if (existing) return existing
+    const generated = `user-${Math.random().toString(36).slice(2, 10)}`
+    localStorage.setItem(USER_KEY, generated)
+    return generated
+  } catch {
+    return 'demo-user'
+  }
+}
 
 function readCache() {
   try {
@@ -35,7 +48,21 @@ function setCached(key, value) {
 }
 
 async function fetchJson(path, params = {}) {
-  const { data } = await axios.get(`${API_BASE}${path}`, { params })
+  const { data } = await axios.get(`${API_BASE}${path}`, {
+    params,
+    headers: {
+      'x-user-id': getUserId(),
+    },
+  })
+  return data
+}
+
+async function postJson(path, body = {}) {
+  const { data } = await axios.post(`${API_BASE}${path}`, body, {
+    headers: {
+      'x-user-id': getUserId(),
+    },
+  })
   return data
 }
 
@@ -72,5 +99,34 @@ export async function fetchTopic(subject, chapter) {
   if (cached) return cached
   const data = await fetchJson('/api/topics', { subject, chapter })
   setCached(key, data)
+  return data
+}
+
+export async function fetchSubjectPage(subject) {
+  const key = `subject:${subject}`
+  const cached = getCached(key)
+  if (cached) return cached
+  const data = await fetchJson('/api/subject', { subject })
+  setCached(key, data)
+  return data
+}
+
+export async function subscribeToSubject(subjectId) {
+  const data = await postJson('/api/subscribe', { subjectId })
+
+  // Invalidate subject/subject-list/chapter caches so UI unlocks instantly.
+  for (const key of [...mem.keys()]) {
+    if (key.startsWith('subjects:') || key.startsWith('chapters:') || key.startsWith('subject:')) {
+      mem.delete(key)
+    }
+  }
+  const local = readCache()
+  for (const key of Object.keys(local)) {
+    if (key.startsWith('subjects:') || key.startsWith('chapters:') || key.startsWith('subject:')) {
+      delete local[key]
+    }
+  }
+  writeCache(local)
+
   return data
 }
