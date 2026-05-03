@@ -12,6 +12,7 @@ function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickE
   ])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   const sectionKey = `${subject}:${chapterId}:${sectionId || 'unknown'}`
   const note = getSectionNote(sectionKey)
@@ -42,6 +43,7 @@ function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickE
     }
 
     runExplain()
+    setMobileOpen(true)
     return () => { mounted = false }
   }, [request])
 
@@ -49,9 +51,9 @@ function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickE
     return messages.length > 1 ? 'Context-aware explain mode' : 'Ready'
   }, [messages])
 
-  return (
-    <aside className="hidden lg:flex lg:w-[320px] xl:w-[360px] shrink-0 border-l border-md-outline/50 bg-md-surf2/70 backdrop-blur h-full sticky top-0 flex-col">
-      <div className="px-4 py-3 border-b border-md-outline/50">
+  const panelContent = (
+    <>
+      <div className="px-4 py-3 border-b border-md-outline/50 shrink-0">
         <div className="text-sm font-semibold text-md-onsurf">AI Assistant</div>
         <div className="text-xs text-md-onsurfvar mt-0.5">{lastMode}</div>
       </div>
@@ -81,7 +83,7 @@ function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickE
         {error && <p className="text-[11px] text-md-error">{error}</p>}
       </div>
 
-      <div className="p-3 border-t border-md-outline/50 space-y-2">
+      <div className="p-3 border-t border-md-outline/50 space-y-2 shrink-0">
         <div className="text-[11px] font-semibold text-md-onsurfvar uppercase tracking-widest">Quick Actions</div>
         <div className="grid grid-cols-1 gap-2">
           <button onClick={() => onQuickExplain('Summarize the key doctrine in this section.')} className="ripple-root text-left px-3 py-2 rounded-xl text-xs bg-md-surf3 text-md-onsurfvar hover:text-md-onsurf border border-md-outline/50">
@@ -93,7 +95,7 @@ function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickE
         </div>
       </div>
 
-      <div className="p-3 border-t border-md-outline/50">
+      <div className="p-3 border-t border-md-outline/50 shrink-0">
         <label className="text-[11px] font-semibold text-md-onsurfvar uppercase tracking-widest block mb-2">Section Notes</label>
         <textarea
           value={note}
@@ -102,7 +104,44 @@ function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickE
           className="w-full h-28 resize-none rounded-xl bg-md-surf3 border border-md-outline/50 px-3 py-2 text-xs text-md-onsurf placeholder-md-onsurfvar/60 focus:outline-none focus:border-md-primary/60"
         />
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex lg:w-[320px] xl:w-[360px] shrink-0 border-l border-md-outline/50 bg-md-surf2/70 backdrop-blur h-full sticky top-0 flex-col">
+        {panelContent}
+      </aside>
+
+      {/* Mobile launcher */}
+      {!mobileOpen && (
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="lg:hidden fixed z-40 right-4 bottom-20 h-12 px-4 rounded-2xl bg-md-primarydim text-white text-sm font-semibold shadow-fabshadow"
+        >
+          AI Assistant
+        </button>
+      )}
+
+      {/* Mobile sheet */}
+      {mobileOpen && (
+        <>
+          <div
+            className="lg:hidden fixed inset-0 z-50 bg-black/60"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="lg:hidden fixed inset-x-0 bottom-16 z-50 h-[72vh] bg-md-surf border-t border-md-outline/60 rounded-t-3xl shadow-elev3 flex flex-col animate-slide-up">
+            <div className="px-4 py-2 border-b border-md-outline/50 flex items-center justify-between shrink-0">
+              <div className="w-10 h-1 rounded-full bg-md-outline mx-auto absolute left-1/2 -translate-x-1/2" />
+              <span className="text-xs font-semibold text-md-onsurfvar">AI Panel</span>
+              <button onClick={() => setMobileOpen(false)} className="text-md-onsurfvar text-xs px-2 py-1 rounded-lg hover:bg-md-surf2">Close</button>
+            </div>
+            {panelContent}
+          </div>
+        </>
+      )}
+    </>
   )
 }
 
