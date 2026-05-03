@@ -6,16 +6,25 @@
     {
       "id": "1-1",
       "heading": "Concept of Obligation",
+      "yearLevel": "2nd Year",
+      "difficulty": "easy",
+      "barFrequency": "medium",
       "content": "An obligation is a juridical necessity to give, to do, or not to do. Under the Civil Code, obligations are enforceable relations between a debtor and creditor.\n\nThe legal tie creates enforceable rights and correlating duties, subject to statutory and jurisprudential limits."
     },
     {
       "id": "1-2",
       "heading": "Sources of Obligations",
+      "yearLevel": "2nd Year",
+      "difficulty": "medium",
+      "barFrequency": "high",
       "content": "Article 1157 of the Civil Code identifies five sources: law, contracts, quasi-contracts, delicts, and quasi-delicts.\n\nEach source has doctrinally distinct requisites and remedial consequences. Proper source identification is often decisive in legal analysis and pleading strategy."
     },
     {
       "id": "1-3",
       "heading": "Determinate and Generic Obligations",
+      "yearLevel": "2nd Year",
+      "difficulty": "hard",
+      "barFrequency": "high",
       "content": "A determinate obligation refers to a specific object distinctly identified, while a generic obligation refers to a class or genus.\n\nThe distinction affects risk allocation, remedies for breach, and the extent of diligence required from the obligor."
     }
   ]

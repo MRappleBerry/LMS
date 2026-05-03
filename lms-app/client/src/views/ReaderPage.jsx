@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getDefaultRoute, getSubjectMeta, loadChapterContent } from '../data/books/catalog'
+import { getAllSubjects, getDefaultRoute, getSubjectMeta, loadChapterContent } from '../data/books/catalog'
 import { ReaderStateProvider, useReaderState } from '../reader/ReaderStateContext'
 import ChapterSidebar from '../reader/ChapterSidebar'
 import ReaderContent from '../reader/ReaderContent'
@@ -14,10 +14,12 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
   const [request, setRequest] = useState(null)
   const [progress, setProgress] = useState(0)
   const [barExamMode, setBarExamMode] = useState(true)
+  const [yearFilter, setYearFilter] = useState('All')
 
   const { addHighlight, markSectionRead, recordQuizResult, getLearningInsights, isSectionRead } = useReaderState()
 
   const subjectMeta = useMemo(() => getSubjectMeta(subject), [subject])
+  const allSubjects = useMemo(() => getAllSubjects(), [])
   const learningInsights = useMemo(() => {
     if (!subjectMeta) return null
     return getLearningInsights(subjectMeta)
@@ -67,6 +69,14 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
     onCloseMobileNav?.()
   }
 
+  function navigateSubject(nextSubject) {
+    if (!nextSubject) return
+    const meta = getSubjectMeta(nextSubject)
+    const firstChapterId = meta?.chapters?.[0]?.id || '1'
+    onNavigatePath(`/course/${nextSubject}/chapter/${firstChapterId}`)
+    onCloseMobileNav?.()
+  }
+
   function jumpToSection(sectionId) {
     const target = document.getElementById(`sec-${sectionId}`)
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -78,7 +88,9 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
     setRequest({
       context: text,
       sectionId,
-      instruction: 'Explain this paragraph in simple terms, then give one concrete legal example, then explain bar exam relevance and a concise model answer approach.',
+      instruction: barExamMode
+        ? 'Explain this paragraph concisely for bar prep, highlight issue-spotting cues, and give one exam tip plus a short model answer frame.'
+        : 'Explain this paragraph in simple terms for a law student and give one concrete practical example.',
       at: Date.now(),
     })
     setSelection(null)
@@ -97,7 +109,9 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
     setRequest({
       context: sourceSection.content,
       sectionId: sourceSection.id,
-      instruction,
+      instruction: barExamMode
+        ? `${instruction} Keep it concise, issue-spotting focused, and include an exam tip.`
+        : `${instruction} Use a clear learning explanation with one practical example.`,
       at: Date.now(),
     })
   }
@@ -134,9 +148,13 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
         activeSectionId={activeSectionId}
         onNavigateChapter={navigateChapter}
         onJumpSection={jumpToSection}
+        onSubjectNavigate={navigateSubject}
         mode="desktop"
         learningInsights={learningInsights}
         isSectionRead={isSectionRead}
+        yearFilter={yearFilter}
+        onYearFilterChange={setYearFilter}
+        subjects={allSubjects}
       />
 
       {mobileNavOpen && (
@@ -147,9 +165,13 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
             activeSectionId={activeSectionId}
             onNavigateChapter={navigateChapter}
             onJumpSection={jumpToSection}
+            onSubjectNavigate={navigateSubject}
             mode="mobile"
             learningInsights={learningInsights}
             isSectionRead={isSectionRead}
+            yearFilter={yearFilter}
+            onYearFilterChange={setYearFilter}
+            subjects={allSubjects}
           />
           <button
             aria-label="Close chapter navigation"
@@ -181,12 +203,20 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
           )}
           <div className="shrink-0 px-4 py-2 border-b border-md-outline/40 flex items-center justify-between">
             <span className="text-xs text-md-onsurfvar">Learning System</span>
-            <button
-              onClick={() => setBarExamMode(v => !v)}
-              className={`text-xs px-2.5 py-1 rounded-lg border ${barExamMode ? 'bg-md-primarycon border-md-primary/50 text-md-onprimarycon' : 'bg-md-surf2 border-md-outline/50 text-md-onsurfvar'}`}
-            >
-              {barExamMode ? 'Bar Exam Mode: ON' : 'Bar Exam Mode: OFF'}
-            </button>
+            <div className="flex items-center bg-md-surf2 border border-md-outline/50 rounded-xl p-1 gap-1 text-xs">
+              <button
+                onClick={() => setBarExamMode(false)}
+                className={`px-2.5 py-1 rounded-lg ${!barExamMode ? 'bg-md-primarycon text-md-onprimarycon' : 'text-md-onsurfvar'}`}
+              >
+                Study Mode
+              </button>
+              <button
+                onClick={() => setBarExamMode(true)}
+                className={`px-2.5 py-1 rounded-lg ${barExamMode ? 'bg-md-primarycon text-md-onprimarycon' : 'text-md-onsurfvar'}`}
+              >
+                Bar Mode
+              </button>
+            </div>
           </div>
           <div className="flex-1 min-h-0">
             <ReaderContent
@@ -197,6 +227,8 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
               onActiveSectionChange={handleActiveSectionChange}
               onProgress={setProgress}
               barExamMode={barExamMode}
+              yearFilter={yearFilter}
+              subjectYearLevel={subjectMeta.yearLevel}
               onCaseExplain={handleCaseExplain}
               onRequestPractice={handlePractice}
               onQuizResult={recordQuizResult}

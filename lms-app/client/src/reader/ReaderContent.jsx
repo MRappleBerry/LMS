@@ -37,6 +37,8 @@ function ReaderContentBase({
   onActiveSectionChange,
   onProgress,
   barExamMode,
+  yearFilter,
+  subjectYearLevel,
   onCaseExplain,
   onRequestPractice,
   onQuizResult,
@@ -94,8 +96,12 @@ function ReaderContentBase({
   const sections = useMemo(() => chapter.sections || [], [chapter])
 
   function withBarMeta(sec) {
+    const freq = (sec.barFrequency || sec.barExam?.frequency || 'medium').toLowerCase()
     return {
       ...sec,
+      yearLevel: sec.yearLevel || subjectYearLevel || '1st Year',
+      difficulty: (sec.difficulty || 'medium').toLowerCase(),
+      barFrequency: freq,
       barExam: sec.barExam || {
         frequency: 'Medium',
         commonTraps: ['Confusing requisites with effects', 'Skipping key exceptions'],
@@ -116,6 +122,12 @@ function ReaderContentBase({
       },
     }
   }
+
+  const visibleSections = useMemo(() => {
+    const mapped = sections.map(withBarMeta)
+    if (!yearFilter || yearFilter === 'All') return mapped
+    return mapped.filter(sec => sec.yearLevel === yearFilter)
+  }, [sections, yearFilter, subjectYearLevel])
 
   function submitQuiz(sectionKey, quiz) {
     const selected = quizChoice[sectionKey]
@@ -147,8 +159,13 @@ function ReaderContentBase({
           </header>
 
           <div className="space-y-12">
-            {sections.map(raw => {
-              const sec = withBarMeta(raw)
+            {visibleSections.length === 0 && (
+              <div className="bg-md-surf2 border border-md-outline/50 rounded-2xl p-4 text-sm text-md-onsurfvar">
+                No sections match the selected year filter.
+              </div>
+            )}
+
+            {visibleSections.map(sec => {
               const sectionKey = `${subject}:${chapterId}:${sec.id}`
               const highlights = getHighlights(sectionKey)
               const answerShown = Boolean(quizShown[sectionKey])
@@ -169,6 +186,20 @@ function ReaderContentBase({
                     </button>
                   </div>
 
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className="text-[11px] px-2 py-1 rounded-full bg-md-surf2 border border-md-outline/50 text-md-onsurfvar">Year: {sec.yearLevel}</span>
+                    <span className={`text-[11px] px-2 py-1 rounded-full border ${
+                      sec.difficulty === 'hard' ? 'bg-red-900/25 border-red-900/50 text-red-300' :
+                      sec.difficulty === 'easy' ? 'bg-emerald-900/25 border-emerald-900/50 text-emerald-300' :
+                      'bg-amber-900/25 border-amber-900/50 text-amber-300'
+                    }`}>Difficulty: {sec.difficulty}</span>
+                    <span className={`text-[11px] px-2 py-1 rounded-full border ${
+                      sec.barFrequency === 'high' ? 'bg-red-900/25 border-red-900/50 text-red-300' :
+                      sec.barFrequency === 'low' ? 'bg-emerald-900/25 border-emerald-900/50 text-emerald-300' :
+                      'bg-amber-900/25 border-amber-900/50 text-amber-300'
+                    }`}>Bar Frequency: {sec.barFrequency}</span>
+                  </div>
+
                   <div className="text-[1.06rem] leading-8 text-md-onsurf/95 font-reader whitespace-pre-line">
                     {renderWithHighlights(sec.content, highlights)}
                   </div>
@@ -178,10 +209,10 @@ function ReaderContentBase({
                       <div className="flex items-center justify-between">
                         <div className="text-xs uppercase tracking-widest text-md-onsurfvar">Bar Exam Mode</div>
                         <span className={`text-[11px] px-2 py-1 rounded-full ${
-                          sec.barExam.frequency === 'High' ? 'bg-red-900/30 text-red-300' :
-                          sec.barExam.frequency === 'Medium' ? 'bg-amber-900/30 text-amber-300' :
+                          sec.barFrequency === 'high' ? 'bg-red-900/30 text-red-300' :
+                          sec.barFrequency === 'medium' ? 'bg-amber-900/30 text-amber-300' :
                           'bg-emerald-900/30 text-emerald-300'
-                        }`}>Frequency: {sec.barExam.frequency}</span>
+                        }`}>Frequency: {sec.barFrequency}</span>
                       </div>
 
                       <div>
