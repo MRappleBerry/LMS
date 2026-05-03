@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd lms-app/client && npm install && npm run build",
+  "buildCommand": "npm --prefix lms-app/client install && npm --prefix lms-app/client run build",
   "outputDirectory": "lms-app/client/dist",
   "installCommand": "npm install",
   "framework": null,
