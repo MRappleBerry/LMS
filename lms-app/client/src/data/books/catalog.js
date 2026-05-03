@@ -44,6 +44,14 @@ export const BOOK_CATALOG = {
 
 const chapterModules = import.meta.glob('./books/*/chapter-*.json')
 
+function toTitleCase(slug) {
+  return (slug || '')
+    .split('-')
+    .filter(Boolean)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
 export function getSubjectMeta(subject) {
   return BOOK_CATALOG[subject] || null
 }
@@ -55,10 +63,41 @@ export function getDefaultRoute() {
   }
 }
 
+export function buildDummyChapter(subject, chapterId) {
+  const subjectMeta = getSubjectMeta(subject)
+  const chapterMeta = subjectMeta?.chapters?.find(ch => String(ch.id) === String(chapterId))
+  const chapterTitle = chapterMeta?.title || `Chapter ${chapterId} Draft Reading`
+  const subjectTitle = subjectMeta?.title || toTitleCase(subject)
+
+  return {
+    subject,
+    chapterId: String(chapterId),
+    title: chapterTitle,
+    isDummy: true,
+    sections: [
+      {
+        id: `${chapterId}-1`,
+        heading: 'Chapter Overview',
+        content: `This is a temporary structured chapter for ${subjectTitle}. The requested chapter does not yet have uploaded source content, so a dummy reading draft was generated to keep the reader usable.\n\nUse this section as a scaffold for inserting final doctrine text, codal anchors, and case references.`
+      },
+      {
+        id: `${chapterId}-2`,
+        heading: 'Core Doctrine Placeholder',
+        content: 'Doctrine placeholder: identify the controlling legal principle, enumerate requisites, and define exceptions.\n\nSuggested structure:\n1. Legal basis\n2. Jurisprudential rule\n3. Policy rationale\n4. Common bar exam traps'
+      },
+      {
+        id: `${chapterId}-3`,
+        heading: 'Case and Bar Notes Placeholder',
+        content: 'Insert landmark Philippine cases and one issue-spotting pattern per doctrine.\n\nExample format:\n- Facts\n- Issue\n- Ruling\n- Doctrine\n- Bar relevance'
+      }
+    ]
+  }
+}
+
 export async function loadChapterContent(subject, chapterId) {
   const key = `./books/${subject}/chapter-${chapterId}.json`
   const loader = chapterModules[key]
-  if (!loader) return null
+  if (!loader) return buildDummyChapter(subject, chapterId)
   const mod = await loader()
   return mod.default || mod
 }

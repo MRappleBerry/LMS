@@ -27,11 +27,6 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath }) {
       setError('')
       const data = await loadChapterContent(subject, chapterId)
       if (!mounted) return
-      if (!data) {
-        setError('Chapter not found.')
-        setLoading(false)
-        return
-      }
       setChapter(data)
       setLoading(false)
     }
@@ -124,14 +119,23 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath }) {
       )}
 
       {chapter && !loading && (
-        <ReaderContent
-          chapter={chapter}
-          subject={subject}
-          chapterId={chapterId}
-          onSelection={setSelection}
-          onActiveSectionChange={setActiveSectionId}
-          onProgress={setProgress}
-        />
+        <div className="flex-1 min-w-0 h-full flex flex-col">
+          {chapter.isDummy && (
+            <div className="shrink-0 px-4 py-2 text-[11px] text-amber-300 bg-amber-500/10 border-b border-amber-500/30">
+              Draft content loaded: this chapter is currently using dummy text.
+            </div>
+          )}
+          <div className="flex-1 min-h-0">
+            <ReaderContent
+              chapter={chapter}
+              subject={subject}
+              chapterId={chapterId}
+              onSelection={setSelection}
+              onActiveSectionChange={setActiveSectionId}
+              onProgress={setProgress}
+            />
+          </div>
+        </div>
       )}
 
       <AIAssistantPanel
