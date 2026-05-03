@@ -2,11 +2,11 @@ import { useRef } from 'react'
 
 const ITEMS = [
   {
-    id: 'dashboard',
-    label: 'Home',
+    id: 'reader',
+    label: 'Reader',
     icon: (
       <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+        <path d="M21 4H3c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h7v2h4v-2h7c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 13H3V6h18v11z" />
       </svg>
     ),
   },
@@ -74,7 +74,7 @@ export default function BottomNav({ activeView, onNavigate }) {
     <nav className="fixed bottom-0 inset-x-0 z-40 glass border-t border-white/[0.04] nav-safe">
       <div className="flex items-stretch h-16">
         {ITEMS.map(item => {
-          const active = activeView === item.id || (item.id === 'more' && ['notes','modules','settings'].includes(activeView))
+          const active = activeView === item.id || (item.id === 'more' && ['notes', 'modules', 'settings', 'dashboard'].includes(activeView))
           return (
             <button
               key={item.id}

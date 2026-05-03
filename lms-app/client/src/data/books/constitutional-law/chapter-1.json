@@ -1,0 +1,22 @@
+{
+  "subject": "constitutional-law",
+  "chapterId": "1",
+  "title": "Nature of the Constitution and Judicial Review",
+  "sections": [
+    {
+      "id": "1-1",
+      "heading": "Constitution as Fundamental Law",
+      "content": "The Constitution is the fundamental and supreme law of the land. Every statute, executive issuance, and judicial act must conform to it.\n\nIn Philippine constitutional law, supremacy means that public authority is valid only when exercised within constitutional limits. Any governmental act inconsistent with the Constitution is void."
+    },
+    {
+      "id": "1-2",
+      "heading": "Judicial Review in Philippine Law",
+      "content": "Judicial review is the power of courts to determine whether acts of the political branches comply with the Constitution. In the Philippine setting, this power is expressly recognized and reinforced by Article VIII of the 1987 Constitution.\n\nCourts exercise judicial review only when an actual case or controversy exists and constitutional adjudication is unavoidable."
+    },
+    {
+      "id": "1-3",
+      "heading": "Requisites of Judicial Review",
+      "content": "Philippine jurisprudence consistently requires: (1) actual case or controversy, (2) legal standing, (3) raised at the earliest opportunity, and (4) constitutional question as the lis mota of the case.\n\nThese requisites prevent courts from issuing advisory opinions and preserve separation of powers."
+    }
+  ]
+}

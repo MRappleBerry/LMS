@@ -1,4 +1,5 @@
 const VIEW_TITLES = {
+  reader: 'Law Book Reader',
   dashboard: 'LexisAI',
   chat:      'AI Assistant',
   cases:     'Case Library',
@@ -8,9 +9,21 @@ const VIEW_TITLES = {
   settings:  'Settings',
 }
 
-export default function TopAppBar({ activeView, onSearch, onNotif }) {
+function formatSubject(subject) {
+  if (!subject) return ''
+  return subject
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+export default function TopAppBar({ activeView, onSearch, onNotif, subject, chapterId }) {
   const title = VIEW_TITLES[activeView] ?? 'LexisAI'
   const isHome = activeView === 'dashboard'
+  const isReader = activeView === 'reader'
+  const readerTitle = isReader
+    ? `${formatSubject(subject) || 'Law Reader'} • Chapter ${chapterId || '-'}`
+    : title
 
   return (
     <header className="fixed top-0 inset-x-0 z-40 glass border-b border-white/[0.04] h-14 flex items-center justify-between px-4 gap-3">
@@ -22,7 +35,7 @@ export default function TopAppBar({ activeView, onSearch, onNotif }) {
           </svg>
         </div>
         <span className="font-bold text-[17px] tracking-tight text-md-onsurf truncate">
-          {isHome ? 'LexisAI' : title}
+          {isHome ? 'LexisAI' : readerTitle}
         </span>
       </div>
 

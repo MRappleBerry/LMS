@@ -122,6 +122,58 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
+app.post('/api/explain', async (req, res) => {
+  const { context, instruction } = req.body || {}
+
+  if (!context || typeof context !== 'string' || context.trim().length < 8) {
+    return res.status(400).json({ error: 'Context is required (at least 8 characters).' })
+  }
+
+  const safeInstruction =
+    typeof instruction === 'string' && instruction.trim().length > 0
+      ? instruction.trim()
+      : 'Explain this in simple terms for a law student.'
+
+  const prompt = [
+    safeInstruction,
+    '',
+    'Context:',
+    context.trim(),
+    '',
+    'Requirements:',
+    '- Keep it concise but doctrinally accurate',
+    '- Add one bar exam relevance point',
+    '- End with one memory tip',
+  ].join('\n')
+
+  const client = getOpenAI()
+
+  if (!client) {
+    return res.json({
+      reply: `Plain Explanation:\n${context.trim().slice(0, 300)}\n\nBar Relevance: Focus on elements, requisites, and exceptions likely tested in issue-spotting questions.\nMemory Tip: Build a 3-part recall cue: doctrine, requisites, exception.\n\n*[Mock explain response — add OPENAI_API_KEY for full AI mode]*`,
+      mode: 'mock',
+    })
+  }
+
+  try {
+    const completion = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: prompt },
+      ],
+      max_tokens: 700,
+      temperature: 0.5,
+    })
+
+    const reply = completion.choices[0]?.message?.content ?? 'No response generated.'
+    return res.json({ reply, mode: 'openai' })
+  } catch (err) {
+    console.error('Explain endpoint error:', err.message)
+    return res.status(500).json({ error: 'Failed to generate explanation.' })
+  }
+})
+
 // ── Module Generator system prompt ────────────────────────────────────────────
 const MODULE_GEN_SYSTEM_PROMPT = `You are a legal education architect and Philippine law expert.
 Generate a COMPLETE law school module for a given subject and year level.

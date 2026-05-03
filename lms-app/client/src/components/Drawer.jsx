@@ -1,5 +1,16 @@
 const DRAWER_ITEMS = [
   {
+    id: 'reader',
+    label: 'Law Reader',
+    desc: 'Kindle-style chapter reading',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+        <path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12V2zm-2 12H9V4h9v10zM4 6H2v14c0 1.1.9 2 2 2h12v-2H4V6z" />
+      </svg>
+    ),
+    color: 'bg-indigo-500/15 text-indigo-400',
+  },
+  {
     id: 'notes',
     label: 'My Notes',
     desc: '28 notes',

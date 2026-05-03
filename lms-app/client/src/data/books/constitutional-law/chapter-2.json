@@ -1,0 +1,22 @@
+{
+  "subject": "constitutional-law",
+  "chapterId": "2",
+  "title": "State Policies and Separation of Powers",
+  "sections": [
+    {
+      "id": "2-1",
+      "heading": "Philippine State Policies",
+      "content": "State policies in Article II articulate constitutional aspirations and guide public governance. Although many provisions are not self-executing, they inform statutory interpretation and constitutional reasoning.\n\nCourts may rely on state policies as interpretive principles when resolving ambiguity in constitutional and statutory texts."
+    },
+    {
+      "id": "2-2",
+      "heading": "Doctrine of Separation of Powers",
+      "content": "Governmental powers are distributed among the legislative, executive, and judicial departments. This distribution reduces concentration of authority and supports constitutional accountability.\n\nNo branch may arrogate powers constitutionally lodged in another branch, subject to constitutionally recognized overlaps."
+    },
+    {
+      "id": "2-3",
+      "heading": "Checks and Balances",
+      "content": "Checks and balances is the structural mechanism by which each branch can restrain excesses of the others. Examples include judicial review, legislative oversight, and executive veto.\n\nThe doctrine preserves constitutional equilibrium by ensuring that power is not absolute in any single department."
+    }
+  ]
+}

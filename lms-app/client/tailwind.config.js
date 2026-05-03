@@ -27,6 +27,7 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        serif: ['Merriweather', 'Georgia', 'serif'],
       },
       borderRadius: {
         'xl2': '20px',
