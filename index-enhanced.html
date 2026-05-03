@@ -1,0 +1,147 @@
+<!-- This file contains the enhanced study mode HTML. Replace lines 1809-1876 in index.html with the content below -->
+
+<!-- STUDY MODE VIEW -->
+<div class="content-area study-view hidden" style="padding: 32px; align-items: flex-start; justify-content: flex-start;">
+    <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+        <h2 style="font-size: 24px; font-weight: 700; margin-bottom: 20px;">Study Dashboard</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 32px;">
+            <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 28px; font-weight: 700; color: var(--primary);">87</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Cards Studied</div>
+            </div>
+            <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 28px; font-weight: 700; color: var(--success);">82%</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Mastery Rate</div>
+            </div>
+            <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 28px; font-weight: 700; color: var(--warning);">12</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">Day Streak 🔥</div>
+            </div>
+            <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; text-align: center;">
+                <div style="font-size: 28px; font-weight: 700; color: var(--accent);">4h 28m</div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">This Week</div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
+            <button class="study-mode-tab" onclick="switchStudyMode('flashcards')" id="fc-tab" style="background-color: var(--primary); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">📇 Flashcards</button>
+            <button class="study-mode-tab" onclick="switchStudyMode('quiz')" id="q-tab" style="background-color: var(--surface-secondary); color: var(--text); padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">❓ Quiz</button>
+            <button class="study-mode-tab" onclick="switchStudyMode('categories')" id="c-tab" style="background-color: var(--surface-secondary); color: var(--text); padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">🏷️ Categories</button>
+        </div>
+
+        <!-- FLASHCARDS MODE -->
+        <div id="flashcard-content">
+            <div class="progress-bar" style="margin-bottom: 16px;">
+                <div class="progress-fill" id="fc-progress" style="width: 4%;"></div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;" id="fc-counter">Question 1 of 25</p>
+            <div class="flashcard" id="study-flashcard" style="cursor: pointer;"></div>
+            <div style="display: flex; gap: 8px; margin-top: 24px; justify-content: center; flex-wrap: wrap;">
+                <button class="study-btn secondary" onclick="fcPrevious()">← Previous</button>
+                <button class="study-btn primary" onclick="fcNext()">Next →</button>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 16px; justify-content: center; flex-wrap: wrap;">
+                <button class="marking-btn" onclick="fcMark('forgot')">Forgot 😞</button>
+                <button class="marking-btn" onclick="fcMark('medium')">Medium 😐</button>
+                <button class="marking-btn" onclick="fcMark('mastered')">Mastered! 🎯</button>
+            </div>
+        </div>
+
+        <!-- QUIZ MODE -->
+        <div id="quiz-content" style="display: none;">
+            <div class="progress-bar" style="margin-bottom: 16px;">
+                <div class="progress-fill" id="q-progress" style="width: 12.5%;"></div>
+            </div>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px;" id="q-counter">Question 1 of 8</p>
+            <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 16px;" id="q-question">Question</h3>
+                <div id="q-options" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 24px; justify-content: center; flex-wrap: wrap;">
+                <button class="study-btn secondary" onclick="qPrevious()">← Previous</button>
+                <button class="study-btn primary" onclick="qSubmit()">Submit</button>
+                <button class="study-btn secondary" onclick="qNext()">Next →</button>
+            </div>
+        </div>
+
+        <!-- CATEGORIES MODE -->
+        <div id="categories-content" style="display: none;">
+            <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 24px;">Topics by Mastery</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="font-weight: 600;">Constitutional Law</h4>
+                        <span style="background-color: var(--success); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">92%</span>
+                    </div>
+                    <div style="background-color: var(--surface-secondary); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;"><div style="background: linear-gradient(90deg, var(--success), var(--accent)); height: 100%; width: 92%;"></div></div>
+                    <p style="font-size: 12px; color: var(--text-muted);">23 of 25 mastered</p>
+                </div>
+                <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="font-weight: 600;">Criminal Law</h4>
+                        <span style="background-color: var(--success); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">78%</span>
+                    </div>
+                    <div style="background-color: var(--surface-secondary); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;"><div style="background: linear-gradient(90deg, var(--success), var(--accent)); height: 100%; width: 78%;"></div></div>
+                    <p style="font-size: 12px; color: var(--text-muted);">19 of 24 mastered</p>
+                </div>
+                <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="font-weight: 600;">Civil Rights</h4>
+                        <span style="background-color: var(--warning); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">65%</span>
+                    </div>
+                    <div style="background-color: var(--surface-secondary); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;"><div style="background: linear-gradient(90deg, var(--warning), var(--accent)); height: 100%; width: 65%;"></div></div>
+                    <p style="font-size: 12px; color: var(--text-muted);">13 of 20 mastered</p>
+                </div>
+                <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="font-weight: 600;">Torts</h4>
+                        <span style="background-color: var(--success); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">88%</span>
+                    </div>
+                    <div style="background-color: var(--surface-secondary); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;"><div style="background: linear-gradient(90deg, var(--success), var(--accent)); height: 100%; width: 88%;"></div></div>
+                    <p style="font-size: 12px; color: var(--text-muted);">21 of 24 mastered</p>
+                </div>
+                <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="font-weight: 600;">Contracts</h4>
+                        <span style="background-color: var(--warning); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">72%</span>
+                    </div>
+                    <div style="background-color: var(--surface-secondary); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;"><div style="background: linear-gradient(90deg, var(--warning), var(--accent)); height: 100%; width: 72%;"></div></div>
+                    <p style="font-size: 12px; color: var(--text-muted);">18 of 25 mastered</p>
+                </div>
+                <div style="background-color: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="font-weight: 600;">Tax Law</h4>
+                        <span style="background-color: var(--warning); color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">58%</span>
+                    </div>
+                    <div style="background-color: var(--surface-secondary); height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;"><div style="background: linear-gradient(90deg, var(--warning), var(--accent)); height: 100%; width: 58%;"></div></div>
+                    <p style="font-size: 12px; color: var(--text-muted);">14 of 24 mastered</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const flashcards = [{q:'What is the principle of judicial review?',a:'Judicial review is the power of courts to determine constitutionality of laws and invalidate unconstitutional acts.'},{q:'Define stare decisis.',a:'Stare decisis means "to stand by things decided." Courts must follow established precedents for consistency.'},{q:'What did Miranda v. Arizona establish?',a:'Police must inform suspects of constitutional rights before custodial interrogation.'},{q:'What is Brown v. Board significance?',a:'Overturned "separate but equal", established segregation in schools violates equal protection.'},{q:'What does Due Process protect?',a:'Fundamental rights and ensures states cannot deprive persons of life, liberty, or property unfairly.'},{q:'Explain implied powers.',a:'Powers not explicitly stated but necessary to execute enumerated powers granted by Constitution.'},{q:'What did Gideon establish?',a:'Right to counsel in criminal cases - government must provide attorney if defendant cannot afford one.'},{q:'What was Loving v. Virginia?',a:'Struck down anti-miscegenation laws, established freedom to marry is protected constitutional right.'},{q:'What is vertical stare decisis?',a:'Lower courts must follow decisions of higher courts in same jurisdiction.'},{q:'How does judicial review relate to separation?',a:'Creates checks and balances on legislative and executive power through constitutional interpretation.'},{q:'What is strict liability?',a:'Liability without fault or negligence, applies to abnormally dangerous activities and defective products.'},{q:'Four elements of negligence?',a:'Duty of care, breach of duty, causation, and damages - all must be proven by plaintiff.'},{q:'What is exclusionary rule?',a:'Illegally obtained evidence cannot be used in court proceedings to protect 4th Amendment rights.'},{q:'Define battery.',a:'Intentional harmful or offensive contact with another person; minimal contact sufficient if offensive.'},{q:'What makes valid contract?',a:'Offer, acceptance, consideration, mutual intent, capacity, and legality all required for enforceability.'},{q:'What is consideration?',a:'Something of value exchanged by both parties; each must give up something in exchange.'},{q:'Promissory estoppel definition?',a:'Enforces promise without consideration when promisor should expect reliance and detrimental reliance occurs.'},{q:'Tax Cuts and Jobs Act impact?',a:'Reduced federal corporate tax rate from 35% to 21% effective 2018.'},{q:'Deduction vs Credit?',a:'Deduction reduces taxable income at your rate; credit directly reduces tax owed dollar-for-dollar.'},{q:'Equal Protection principle?',a:'States cannot deny equal protection; race/religion classifications receive strict scrutiny review.'},{q:'What was Plessy v. Ferguson?',a:'Established "separate but equal" doctrine allowing segregation, later overruled by Brown v. Board.'},{q:'Adverse possession definition?',a:'Gaining property rights by openly occupying land without permission for statutory period.'},{q:'Statute of limitations contracts?',a:'Typical 3-6 years depending on whether contract is written or oral and jurisdiction.'},{q:'Charitable tax exemption 501c3?',a:'Organizations exempt from taxation if serving charitable, educational, religious or scientific purposes.'},{q:'Qualified immunity definition?',a:'Shields government officials from liability for constitutional violations unless right was "clearly established".'}];
+        const quiz = [{q:'Purpose of Miranda rights?',o:['Inform suspects of constitutional rights','Prevent suspects from staying silent','Allow police to interrogate without lawyer','Guarantee speedy trial'],c:0},{q:'Which established judicial review?',o:['Marbury v. Madison','McCulloch v. Maryland','Brown v. Board','Miranda v. Arizona'],c:0},{q:'What does stare decisis mean?',o:['Equal protection of laws','Stand by things decided','Right to legal counsel','Supreme court review'],c:1},{q:'Four elements of negligence?',o:['Intent, action, harm, proof','Duty, breach, causation, damages','Offer, acceptance, consideration, intent','Act, motive, result, punishment'],c:1},{q:'Consideration in contract is?',o:['A court decision','Something of value exchanged','A written promise','Acceptance of offer'],c:1},{q:'Equal Protection prevents?',o:['Unlawful searches','Wrongful imprisonment','Denial of equal protection by states','Excessive bail or fines'],c:2},{q:'Strict liability means?',o:['Requires gross negligence','Liability without fault','Applies only to intentional acts','Requires proof of intent'],c:1},{q:'Corporate tax rate under TCJA?',o:['35%','25%','21%','15%'],c:2}];
+        let fcIdx=0, qIdx=0;
+        const fc=document.getElementById('study-flashcard');
+        
+        function updateFC(){document.getElementById('fc-progress').style.width=((fcIdx+1)/25*100)+'%';document.getElementById('fc-counter').textContent='Question '+(fcIdx+1)+' of 25';fc.classList.remove('flipped');fc.innerHTML='<div class="flashcard-label">Question</div><div class="flashcard-content">'+flashcards[fcIdx].q+'</div><div class="flashcard-hint">Click to reveal answer</div>';}
+        
+        function fcNext(){if(fcIdx<24)fcIdx++;updateFC();}
+        function fcPrevious(){if(fcIdx>0)fcIdx--;updateFC();}
+        function fcMark(l){alert('Marked as '+l.toUpperCase());fcNext();}
+        
+        function updateQ(){document.getElementById('q-progress').style.width=((qIdx+1)/8*100)+'%';document.getElementById('q-counter').textContent='Question '+(qIdx+1)+' of 8';document.getElementById('q-question').textContent=quiz[qIdx].q;let h='';quiz[qIdx].o.forEach((o,i)=>{h+='<label style="padding:10px;background:var(--surface-secondary);border-radius:8px;cursor:pointer;"><input type="radio" name="qans" value="'+i+'" style="margin-right:8px;">'+o+'</label>';}); document.getElementById('q-options').innerHTML=h;}
+        
+        function qNext(){if(qIdx<7)qIdx++;updateQ();}
+        function qPrevious(){if(qIdx>0)qIdx--;updateQ();}
+        function qSubmit(){const s=document.querySelector('input[name="qans"]:checked');if(s){const correct=parseInt(s.value)===quiz[qIdx].c;alert((correct?'Correct! ✓':'Incorrect ✗')+' - Correct answer: '+quiz[qIdx].o[quiz[qIdx].c]);qNext();}else{alert('Please select an answer');}}
+        
+        function switchStudyMode(m){document.getElementById('flashcard-content').style.display=m==='flashcards'?'block':'none';document.getElementById('quiz-content').style.display=m==='quiz'?'block':'none';document.getElementById('categories-content').style.display=m==='categories'?'block':'none';document.getElementById('fc-tab').style.backgroundColor=m==='flashcards'?'var(--primary)':'var(--surface-secondary)';document.getElementById('fc-tab').style.color=m==='flashcards'?'white':'var(--text)';document.getElementById('q-tab').style.backgroundColor=m==='quiz'?'var(--primary)':'var(--surface-secondary)';document.getElementById('q-tab').style.color=m==='quiz'?'white':'var(--text)';document.getElementById('c-tab').style.backgroundColor=m==='categories'?'var(--primary)':'var(--surface-secondary)';document.getElementById('c-tab').style.color=m==='categories'?'white':'var(--text)';}
+        
+        fc.addEventListener('click',function(){this.classList.toggle('flipped');if(this.classList.contains('flipped')){this.querySelector('.flashcard-content').textContent=flashcards[fcIdx].a;this.querySelector('.flashcard-hint').textContent='Click for question';}else{this.querySelector('.flashcard-content').textContent=flashcards[fcIdx].q;this.querySelector('.flashcard-hint').textContent='Click to reveal answer';}});
+        
+        updateFC();updateQ();
+    </script>
+</div>

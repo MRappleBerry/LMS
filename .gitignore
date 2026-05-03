@@ -1,0 +1,7 @@
+node_modules/
+lms-app/client/node_modules/
+lms-app/server/node_modules/
+lms-app/client/dist/
+.env
+.env.local
+.vercel

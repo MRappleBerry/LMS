@@ -1,0 +1,3033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LexisAI - Legal Learning Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e40af;
+            --primary-dark: #1e3a8a;
+            --secondary: #64748b;
+            --accent: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            
+            --bg-light: #f8fafc;
+            --bg-dark: #0f172a;
+            --surface-light: #ffffff;
+            --surface-dark: #1e293b;
+            --surface-dark-2: #0f172a;
+            --border-light: #e2e8f0;
+            --border-dark: #334155;
+            --text-light: #1e293b;
+            --text-dark: #f1f5f9;
+            --text-muted-light: #64748b;
+            --text-muted-dark: #94a3b8;
+            
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+        }
+
+        body.light-mode {
+            --bg: var(--bg-light);
+            --surface: var(--surface-light);
+            --border: var(--border-light);
+            --text: var(--text-light);
+            --text-muted: var(--text-muted-light);
+            --surface-secondary: #f1f5f9;
+        }
+
+        body.dark-mode {
+            --bg: var(--bg-dark);
+            --surface: var(--surface-dark);
+            --border: var(--border-dark);
+            --text: var(--text-dark);
+            --text-muted: var(--text-muted-dark);
+            --surface-secondary: var(--surface-dark-2);
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            transition: var(--transition);
+        }
+
+        /* ==================== LAYOUT ==================== */
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 260px;
+            background-color: var(--surface);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .sidebar-header {
+            padding: 20px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 8px;
+            overflow-y: auto;
+        }
+
+        .nav-item {
+            padding: 12px 16px;
+            margin: 4px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background-color: var(--surface-secondary);
+            color: var(--text);
+        }
+
+        .nav-item.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-footer {
+            padding: 12px 8px;
+            border-top: 1px solid var(--border);
+        }
+
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .topbar {
+            height: 60px;
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            gap: 20px;
+        }
+
+        .topbar-left {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .search-bar {
+            flex: 1;
+            max-width: 400px;
+            height: 36px;
+            background-color: var(--surface-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .search-bar input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text);
+            outline: none;
+            font-size: 14px;
+        }
+
+        .search-bar input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background-color: var(--surface-secondary);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: var(--transition);
+            font-size: 18px;
+        }
+
+        .icon-btn:hover {
+            background-color: var(--border);
+            color: var(--text);
+        }
+
+        .icon-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .profile-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .profile-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .content-area.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ==================== VIEWS ==================== */
+        .dashboard-view {
+            padding: 32px;
+            gap: 32px;
+        }
+
+        .dashboard-header {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .dashboard-title {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .dashboard-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 10px 25px rgba(30, 64, 175, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background-color: var(--surface-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .card-content {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .curriculum-panel {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .curriculum-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .section-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .curriculum-filter {
+            min-width: 220px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .curriculum-filter label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .curriculum-select {
+            width: 100%;
+            height: 46px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background-color: var(--surface-secondary);
+            color: var(--text);
+            padding: 0 14px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .curriculum-select:focus {
+            border-color: var(--primary);
+        }
+
+        .curriculum-summary {
+            background-color: var(--surface-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .curriculum-summary-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .summary-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .summary-copy {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.5;
+            max-width: 700px;
+        }
+
+        .summary-btn {
+            border: none;
+            border-radius: 12px;
+            background-color: var(--primary);
+            color: white;
+            padding: 12px 18px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .summary-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .module-card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .module-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 14px 30px rgba(30, 64, 175, 0.12);
+        }
+
+        .module-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .module-subject {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .module-title {
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .module-lessons {
+            font-size: 12px;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 6px 10px;
+            white-space: nowrap;
+        }
+
+        .module-progress-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .module-progress-track {
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background-color: var(--border);
+            overflow: hidden;
+        }
+
+        .module-progress-bar {
+            height: 100%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+
+        /* ==================== CHAT INTERFACE ==================== */
+        .chat-view {
+            flex-direction: column;
+            padding: 0;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            overflow: hidden;
+        }
+
+        .chat-window {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background-color: var(--surface-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .message.ai .message-avatar {
+            background: linear-gradient(135deg, var(--accent), var(--primary));
+            color: white;
+        }
+
+        .message-content {
+            max-width: 60%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .message.user .message-content {
+            align-items: flex-end;
+        }
+
+        .message.ai .message-content {
+            align-items: flex-start;
+        }
+
+        .message-bubble {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-bubble {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .message.ai .message-bubble {
+            background-color: var(--surface-secondary);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .action-btn {
+            font-size: 12px;
+            padding: 4px 8px;
+            background-color: var(--surface-secondary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .action-btn:hover {
+            background-color: var(--border);
+            color: var(--text);
+        }
+
+        .chat-input-area {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            background-color: var(--bg);
+        }
+
+        .chat-suggestions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .suggestion-btn {
+            padding: 10px 12px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .suggestion-btn:hover {
+            background-color: var(--surface-secondary);
+            border-color: var(--primary);
+            color: var(--text);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: inherit;
+            resize: none;
+            max-height: 100px;
+            transition: var(--transition);
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+        }
+
+        .send-btn {
+            padding: 12px 20px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .send-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .send-btn:active {
+            transform: scale(0.98);
+        }
+
+        .chat-sidebar {
+            width: 340px;
+            background-color: var(--surface);
+            border-left: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sidebar-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .case-reference {
+            padding: 12px;
+            background-color: var(--surface-secondary);
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .case-reference:hover {
+            background-color: var(--border);
+        }
+
+        .case-reference-name {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+
+        .case-reference-meta {
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* ==================== CASE LIBRARY ==================== */
+        .cases-view {
+            padding: 32px;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .filters-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .filter-input {
+            flex: 1;
+            min-width: 200px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .filter-select {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .cases-list {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .case-item {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .case-item:hover {
+            border-color: var(--primary);
+            box-shadow: 0 10px 25px rgba(30, 64, 175, 0.1);
+        }
+
+        .case-info {
+            flex: 1;
+        }
+
+        .case-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .case-meta {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 16px;
+        }
+
+        .case-excerpt {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .case-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .quick-action-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            background-color: var(--surface-secondary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .quick-action-btn:hover {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .case-category {
+            display: inline-block;
+            padding: 4px 8px;
+            background-color: var(--accent);
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+
+        /* ==================== CASE DETAIL VIEW ==================== */
+        .case-detail-view {
+            padding: 32px;
+            flex-direction: column;
+            gap: 24px;
+            overflow-y: auto;
+        }
+
+        .case-detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+
+        .case-detail-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .case-detail-meta {
+            font-size: 14px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .case-detail-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: var(--transition);
+        }
+
+        .action-icon-btn:hover {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .case-content-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+        }
+
+        .case-text {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            line-height: 1.8;
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .case-text p {
+            margin-bottom: 16px;
+        }
+
+        .case-text .highlight {
+            background-color: rgba(250, 204, 21, 0.3);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .case-text .highlight:hover {
+            background-color: rgba(250, 204, 21, 0.5);
+        }
+
+        .case-summary {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .summary-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .summary-title {
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .summary-content {
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text);
+        }
+
+        .key-point {
+            padding: 10px 12px;
+            background-color: var(--surface-secondary);
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        /* ==================== STUDY MODE ==================== */
+        .study-view {
+            padding: 32px;
+            flex-direction: column;
+            gap: 24px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .flashcard {
+            width: 100%;
+            max-width: 500px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .flashcard:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .flashcard.flipped {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+        }
+
+        .flashcard-label {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+            opacity: 0.8;
+        }
+
+        .flashcard.flipped .flashcard-label {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .flashcard-content {
+            font-size: 18px;
+            font-weight: 600;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .flashcard-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        .flashcard.flipped .flashcard-hint {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .progress-bar {
+            width: 100%;
+            max-width: 500px;
+            height: 8px;
+            background-color: var(--surface-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--accent));
+            width: 45%;
+            transition: width 0.3s ease;
+        }
+
+        .study-controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .study-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            font-size: 14px;
+        }
+
+        .study-btn.primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .study-btn.secondary {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+
+        .study-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* ==================== STUDY EXTRAS ==================== */
+        .study-tabs {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            max-width: 500px;
+        }
+        .study-tab-btn {
+            flex: 1;
+            padding: 10px 0;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .study-tab-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .study-tab-btn:hover:not(.active) {
+            background: var(--surface-secondary);
+            color: var(--text);
+        }
+        .study-panel { display: none; width: 100%; max-width: 500px; flex-direction: column; align-items: center; gap: 16px; }
+        .study-panel.active { display: flex; }
+        .quiz-option {
+            width: 100%;
+            text-align: left;
+            padding: 14px 16px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 14px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .quiz-option:hover:not(:disabled) { border-color: var(--primary); background: var(--surface-secondary); }
+        .quiz-option.correct  { border-color: var(--success); background: rgba(16,185,129,.12); color: var(--success); font-weight: 700; }
+        .quiz-option.wrong    { border-color: var(--danger);  background: rgba(239,68,68,.10);  color: var(--danger);  font-weight: 700; }
+        .quiz-option:disabled { cursor: default; }
+        .quiz-result-banner {
+            width: 100%;
+            padding: 18px 20px;
+            border-radius: 14px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 18px;
+            display: none;
+        }
+        .quiz-result-banner.pass  { background: rgba(16,185,129,.15); color: var(--success); border: 1.5px solid var(--success); }
+        .quiz-result-banner.fail  { background: rgba(239,68,68,.10);  color: var(--danger);  border: 1.5px solid var(--danger); }
+        .lesson-complete-banner {
+            width: 100%;
+            padding: 16px 20px;
+            border-radius: 14px;
+            background: rgba(16,185,129,.13);
+            border: 1.5px solid var(--success);
+            color: var(--success);
+            text-align: center;
+            font-weight: 700;
+            font-size: 15px;
+            display: none;
+        }
+        .progress-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: var(--primary);
+            color: white;
+            margin-left: 8px;
+        }
+
+        /* ==================== NOTES VIEW ==================== */
+        .notes-view {
+            padding: 32px;
+            flex-direction: column;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .notes-header {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .note-editor {
+            width: 100%;
+            max-width: 700px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            min-height: 400px;
+        }
+
+        .note-title-input {
+            font-size: 24px;
+            font-weight: 700;
+            background: none;
+            border: none;
+            color: var(--text);
+            margin-bottom: 16px;
+            outline: none;
+            width: 100%;
+        }
+
+        .note-title-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .note-content-input {
+            font-size: 14px;
+            background: none;
+            border: none;
+            color: var(--text);
+            line-height: 1.8;
+            outline: none;
+            width: 100%;
+            font-family: inherit;
+            resize: none;
+            min-height: 300px;
+        }
+
+        .note-content-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .note-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .note-save-btn {
+            padding: 10px 24px;
+            background-color: var(--success);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .note-save-btn:hover {
+            background-color: #059669;
+        }
+
+        /* ==================== SETTINGS VIEW ==================== */
+        .settings-view {
+            padding: 32px;
+            flex-direction: column;
+            gap: 24px;
+            max-width: 600px;
+        }
+
+        .settings-section {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .settings-section-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-label {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .setting-label-name {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .setting-label-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .toggle-switch {
+            width: 44px;
+            height: 24px;
+            background-color: var(--surface-secondary);
+            border-radius: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: var(--transition);
+            border: none;
+        }
+
+        .toggle-switch.active {
+            background-color: var(--success);
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background-color: white;
+            border-radius: 10px;
+            transition: var(--transition);
+        }
+
+        .toggle-switch.active::after {
+            left: 22px;
+        }
+
+        /* Study Mode Tabs */
+        .study-mode-tab {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            font-size: 14px;
+        }
+
+        .study-mode-tab:hover {
+            transform: translateY(-2px);
+        }
+
+        .study-mode-tab.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        /* Marking Buttons */
+        .marking-btn {
+            padding: 12px 18px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background-color: var(--surface);
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: var(--transition);
+        }
+
+        .marking-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .marking-btn.forgot:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .marking-btn.medium:hover {
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .marking-btn.mastered:hover {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        /* ==================== MODAL ==================== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--surface);
+            border-radius: 16px;
+            padding: 28px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-header {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background-color: var(--surface-secondary);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--border);
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                display: grid;
+                grid-template-columns: auto 1fr;
+                align-items: center;
+            }
+
+            .sidebar-header {
+                padding: 16px;
+                grid-column: 1;
+                grid-row: 1;
+                border-bottom: none;
+                border-right: 1px solid var(--border);
+            }
+
+            .sidebar-nav {
+                grid-column: 2;
+                grid-row: 1;
+                padding: 0;
+                display: flex;
+                gap: 8px;
+                overflow-x: auto;
+                border: none;
+                flex: 1;
+            }
+
+            .sidebar-footer {
+                grid-column: 2;
+                grid-row: 1;
+                display: none;
+            }
+
+            .main-wrapper {
+                width: 100%;
+                height: auto;
+            }
+
+            .main-content {
+                flex-direction: column;
+            }
+
+            .chat-container {
+                flex-direction: column-reverse;
+            }
+
+            .chat-sidebar {
+                width: 100%;
+                border-left: none;
+                border-bottom: 1px solid var(--border);
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
+            .case-content-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .message-content {
+                max-width: 100%;
+            }
+
+            .chat-suggestions {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-view,
+            .cases-view,
+            .case-detail-view,
+            .settings-view {
+                padding: 16px;
+            }
+
+            .topbar {
+                padding: 0 16px;
+                gap: 12px;
+            }
+
+            .search-bar {
+                max-width: none;
+            }
+
+            .topbar-left {
+                flex: 1;
+                gap: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar-nav {
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            .nav-item {
+                white-space: nowrap;
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+
+            .message-content {
+                max-width: 100% !important;
+            }
+
+            .case-detail-header {
+                flex-direction: column;
+            }
+
+            .case-detail-actions {
+                width: 100%;
+            }
+
+            .flashcard {
+                padding: 24px;
+            }
+        }
+
+        /* ==================== UTILITIES ==================== */
+        .hidden {
+            display: none !important;
+        }
+
+        .scrollable {
+            overflow-y: auto;
+        }
+
+        .no-wrap {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ==================== SCROLLBAR ==================== */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--surface);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body class="light-mode">
+    <div class="container">
+        <!-- ==================== SIDEBAR ==================== -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">⚖️</div>
+                <div class="sidebar-title">LexisAI</div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-item active" data-view="dashboard">
+                    <div class="nav-icon">📊</div>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" data-view="cases">
+                    <div class="nav-icon">📚</div>
+                    <span>Case Library</span>
+                </div>
+                <div class="nav-item" data-view="chat">
+                    <div class="nav-icon">🤖</div>
+                    <span>AI Assistant</span>
+                </div>
+                <div class="nav-item" data-view="study">
+                    <div class="nav-icon">🧠</div>
+                    <span>Study Mode</span>
+                </div>
+                <div class="nav-item" data-view="notes">
+                    <div class="nav-icon">📝</div>
+                    <span>Notes</span>
+                </div>
+                <div class="nav-item" data-view="settings">
+                    <div class="nav-icon">⚙️</div>
+                    <span>Settings</span>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="nav-item">
+                    <div class="nav-icon">❓</div>
+                    <span>Help & Docs</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== MAIN ==================== -->
+        <div class="main-wrapper">
+            <!-- TOP BAR -->
+            <div class="topbar">
+                <div class="topbar-left">
+                    <div class="search-bar">
+                        <span>🔍</span>
+                        <input type="text" placeholder="Search cases, notes, topics...">
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <button class="icon-btn" title="Notifications">🔔</button>
+                    <button class="icon-btn" id="theme-toggle" title="Toggle theme">🌙</button>
+                    <div class="profile-btn">
+                        <div class="profile-avatar">AJ</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN CONTENT -->
+            <div class="main-content">
+                <!-- DASHBOARD VIEW -->
+                <div class="content-area dashboard-view active">
+                    <div class="dashboard-header">
+                        <h1 class="dashboard-title">Welcome back, Alex</h1>
+                        <p class="dashboard-subtitle">May 2, 2026 • 3 new cases added</p>
+                    </div>
+
+                    <div class="curriculum-panel">
+                        <div class="curriculum-header">
+                            <div>
+                                <div class="section-title">Year-Level Modules</div>
+                                <div class="section-subtitle">Pick a year level to see the subjects and modules available for that stage.</div>
+                            </div>
+                            <div class="curriculum-filter">
+                                <label for="year-level-select">Year Level</label>
+                                <select id="year-level-select" class="curriculum-select"></select>
+                            </div>
+                        </div>
+
+                        <div class="curriculum-summary">
+                            <div class="curriculum-summary-top">
+                                <div>
+                                    <div class="summary-title" id="curriculum-track-title">1st Year Curriculum Track</div>
+                                    <div class="summary-copy" id="curriculum-track-focus"></div>
+                                </div>
+                                <button class="summary-btn" id="open-study-mode-btn">Open Study Mode</button>
+                            </div>
+                            <div class="module-grid" id="module-grid"></div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card" data-view="chat">
+                            <div class="card-header">
+                                <div class="card-icon">🤖</div>
+                                <div>
+                                    <div class="card-title">AI Assistant</div>
+                                    <div class="card-subtitle">Ask legal questions</div>
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                Get instant explanations of complex legal doctrines and case law.
+                            </div>
+                        </div>
+
+                        <div class="card" data-view="cases">
+                            <div class="card-header">
+                                <div class="card-icon">📚</div>
+                                <div>
+                                    <div class="card-title">Case Library</div>
+                                    <div class="card-subtitle">1,245 cases</div>
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                Browse and search landmark legal cases by topic and date.
+                            </div>
+                        </div>
+
+                        <div class="card" data-view="study">
+                            <div class="card-header">
+                                <div class="card-icon">🧠</div>
+                                <div>
+                                    <div class="card-title">Study Mode</div>
+                                    <div class="card-subtitle">45% progress</div>
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                Master legal concepts with interactive flashcards and quizzes.
+                            </div>
+                        </div>
+
+                        <div class="card" data-view="notes">
+                            <div class="card-header">
+                                <div class="card-icon">📝</div>
+                                <div>
+                                    <div class="card-title">My Notes</div>
+                                    <div class="card-subtitle">28 notes</div>
+                                </div>
+                            </div>
+                            <div class="card-content">
+                                Create and organize notes linked to cases and concepts.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHAT VIEW -->
+                <div class="content-area chat-view">
+                    <div class="chat-container">
+                        <div class="chat-window">
+                            <div class="chat-messages" id="chat-messages">
+                                <div class="message ai">
+                                    <div class="message-avatar">AI</div>
+                                    <div class="message-content">
+                                        <div class="message-bubble">
+                                            Hi! I'm your legal study partner. I can help you understand cases, explain legal concepts, summarize documents, and prepare for exams.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="message user">
+                                    <div class="message-avatar">You</div>
+                                    <div class="message-content">
+                                        <div class="message-bubble">Can you explain the doctrine of stare decisis?</div>
+                                    </div>
+                                </div>
+                                <div class="message ai">
+                                    <div class="message-avatar">AI</div>
+                                    <div class="message-content">
+                                        <div class="message-bubble">
+                                            Absolutely! Stare decisis, Latin for "to stand by things decided," is the doctrine of precedent. It means courts should follow established precedents when deciding cases. There are two key types:
+                                            <br><br>
+                                            <strong>Vertical stare decisis:</strong> Lower courts must follow decisions of higher courts in the same jurisdiction.
+                                            <br><br>
+                                            <strong>Horizontal stare decisis:</strong> Courts typically follow their own prior decisions.
+                                            <br><br>
+                                            This doctrine promotes consistency, predictability, and fairness in the legal system.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="message user">
+                                    <div class="message-avatar">You</div>
+                                    <div class="message-content">
+                                        <div class="message-bubble">How does it apply to Miranda v. Arizona?</div>
+                                    </div>
+                                </div>
+                                <div class="message ai">
+                                    <div class="message-avatar">AI</div>
+                                    <div class="message-content">
+                                        <div class="message-bubble">
+                                            Great connection! Miranda v. Arizona (1966) is itself a landmark precedent that established Miranda Rights. Under stare decisis, all lower courts and the states must follow this Supreme Court decision. This means:
+                                            <br><br>
+                                            • Police must read suspects their rights before custodial interrogation
+                                            • Failure to do so renders statements inadmissible
+                                            • This applies nationwide as binding precedent
+                                            <br><br>
+                                            It's a perfect example of vertical stare decisis in action.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chat-input-area">
+                                <div class="chat-suggestions" id="chat-suggestions">
+                                    <button class="suggestion-btn">Explain habeas corpus</button>
+                                    <button class="suggestion-btn">Summarize Marbury v. Madison</button>
+                                    <button class="suggestion-btn">What is legal precedent?</button>
+                                    <button class="suggestion-btn">Compare tort law systems</button>
+                                </div>
+
+                                <div class="input-group">
+                                    <textarea class="chat-input" id="chat-input" placeholder="Ask about a case, concept, or doctrine..." rows="2"></textarea>
+                                    <button class="send-btn" id="send-btn">Send</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="chat-sidebar">
+                            <div class="sidebar-section">
+                                <div class="sidebar-section-title">Context</div>
+                                <div class="case-reference">
+                                    <div class="case-reference-name">Marbury v. Madison</div>
+                                    <div class="case-reference-meta">Constitutional Law • 1803</div>
+                                </div>
+                                <div class="case-reference">
+                                    <div class="case-reference-name">Miranda v. Arizona</div>
+                                    <div class="case-reference-meta">Criminal Procedure • 1966</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CASES VIEW -->
+                <div class="content-area cases-view">
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 12px;">
+                        <h1 style="font-size: 28px; font-weight: 700;">Case Library</h1>
+                        <button class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">+ New Case</button>
+                    </div>
+
+                    <div class="filters-bar">
+                        <input type="text" class="filter-input" placeholder="Search by case name...">
+                        <select class="filter-select">
+                            <option>All Categories</option>
+                            <option>Constitutional Law</option>
+                            <option>Criminal Law</option>
+                            <option>Civil Rights</option>
+                            <option>Tax Law</option>
+                        </select>
+                        <select class="filter-select">
+                            <option>All Years</option>
+                            <option>Last Year</option>
+                            <option>1950-2000</option>
+                            <option>2000-Present</option>
+                        </select>
+                    </div>
+
+                    <div class="cases-list" id="cases-list">
+                        <div class="case-item" data-view="case-detail">
+                            <div class="case-info">
+                                <div class="case-name">
+                                    Marbury v. Madison
+                                    <span class="case-category">Constitutional Law</span>
+                                </div>
+                                <div class="case-meta">
+                                    <span>1803</span>
+                                    <span>Supreme Court</span>
+                                </div>
+                                <div class="case-excerpt">
+                                    Landmark case establishing the principle of judicial review, allowing the Supreme Court to invalidate legislative acts that conflict with the Constitution...
+                                </div>
+                                <div class="case-actions">
+                                    <button class="quick-action-btn">Read Full Case</button>
+                                    <button class="quick-action-btn">Ask AI</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="case-item">
+                            <div class="case-info">
+                                <div class="case-name">
+                                    Miranda v. Arizona
+                                    <span class="case-category">Criminal Procedure</span>
+                                </div>
+                                <div class="case-meta">
+                                    <span>1966</span>
+                                    <span>Supreme Court</span>
+                                </div>
+                                <div class="case-excerpt">
+                                    Established the requirement that police inform suspects of their constitutional rights (Miranda rights) before custodial interrogation...
+                                </div>
+                                <div class="case-actions">
+                                    <button class="quick-action-btn">Read Full Case</button>
+                                    <button class="quick-action-btn">Ask AI</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="case-item">
+                            <div class="case-info">
+                                <div class="case-name">
+                                    Brown v. Board of Education
+                                    <span class="case-category">Civil Rights</span>
+                                </div>
+                                <div class="case-meta">
+                                    <span>1954</span>
+                                    <span>Supreme Court</span>
+                                </div>
+                                <div class="case-excerpt">
+                                    Landmark decision declaring that racial segregation in public schools is unconstitutional, overturning the "separate but equal" doctrine...
+                                </div>
+                                <div class="case-actions">
+                                    <button class="quick-action-btn">Read Full Case</button>
+                                    <button class="quick-action-btn">Ask AI</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="case-item">
+                            <div class="case-info">
+                                <div class="case-name">
+                                    Roe v. Wade
+                                    <span class="case-category">Constitutional Law</span>
+                                </div>
+                                <div class="case-meta">
+                                    <span>1973</span>
+                                    <span>Supreme Court</span>
+                                </div>
+                                <div class="case-excerpt">
+                                    Established a constitutional right to abortion under the Due Process Clause of the Fourteenth Amendment, creating a trimester framework for state regulation...
+                                </div>
+                                <div class="case-actions">
+                                    <button class="quick-action-btn">Read Full Case</button>
+                                    <button class="quick-action-btn">Ask AI</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="case-item">
+                            <div class="case-info">
+                                <div class="case-name">
+                                    McCulloch v. Maryland
+                                    <span class="case-category">Constitutional Law</span>
+                                </div>
+                                <div class="case-meta">
+                                    <span>1819</span>
+                                    <span>Supreme Court</span>
+                                </div>
+                                <div class="case-excerpt">
+                                    Established the doctrine of implied powers, holding that Congress has the authority to charter a national bank and that states cannot tax federal institutions...
+                                </div>
+                                <div class="case-actions">
+                                    <button class="quick-action-btn">Read Full Case</button>
+                                    <button class="quick-action-btn">Ask AI</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="case-item">
+                            <div class="case-info">
+                                <div class="case-name">
+                                    Gideon v. Wainwright
+                                    <span class="case-category">Criminal Procedure</span>
+                                </div>
+                                <div class="case-meta">
+                                    <span>1963</span>
+                                    <span>Supreme Court</span>
+                                </div>
+                                <div class="case-excerpt">
+                                    Established that defendants in criminal trials have the right to an attorney, even if they cannot afford one. Court must provide counsel at government expense...
+                                </div>
+                                <div class="case-actions">
+                                    <button class="quick-action-btn">Read Full Case</button>
+                                    <button class="quick-action-btn">Ask AI</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="case-item">
+                            <div class="case-info">
+                                <div class="case-name">
+                                    Loving v. Virginia
+                                    <span class="case-category">Civil Rights</span>
+                                </div>
+                                <div class="case-meta">
+                                    <span>1967</span>
+                                    <span>Supreme Court</span>
+                                </div>
+                                <div class="case-excerpt">
+                                    Struck down anti-miscegenation laws in the United States, ruling that the freedom to marry is part of the liberty protected by the Fourteenth Amendment...
+                                </div>
+                                <div class="case-actions">
+                                    <button class="quick-action-btn">Read Full Case</button>
+                                    <button class="quick-action-btn">Ask AI</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CASE DETAIL VIEW -->
+                <div class="content-area case-detail-view">
+                    <div class="case-detail-header">
+                        <div>
+                            <h1 class="case-detail-title">Marbury v. Madison</h1>
+                            <div class="case-detail-meta">
+                                <span>📅 1803</span>
+                                <span>🏢 Supreme Court of the United States</span>
+                                <span>⚖️ Constitutional Law</span>
+                            </div>
+                        </div>
+                        <div class="case-detail-actions">
+                            <button class="action-icon-btn" title="Bookmark">🔖</button>
+                            <button class="action-icon-btn" title="Highlight">🖍️</button>
+                            <button class="action-icon-btn" title="Share">📤</button>
+                        </div>
+                    </div>
+
+                    <div class="case-content-wrapper">
+                        <div class="case-text">
+                            <p>This case involves William Marbury, who was appointed as a justice of the peace but did not receive his commission, and Secretary of State James Madison, who refused to deliver it. Marbury brought suit directly to the Supreme Court requesting a writ of mandamus to compel Madison to deliver the commission.</p>
+
+                            <p><span class="highlight">Chief Justice John Marshall wrote the decision holding that while Marbury was entitled to his commission and the law providing a remedy (mandamus) was appropriate, the Supreme Court lacked the authority to issue such a writ under the original jurisdiction granted to it by Article III of the Constitution.</span></p>
+
+                            <p>Marshall further held that the statute that purported to grant the Supreme Court this jurisdiction conflicted with the Constitution. <span class="highlight">In the pivotal portion of his decision, Marshall asserted that when an act of Congress conflicts with the Constitution, the Court has a duty to determine which is supreme and that the Constitution is the supreme law of the land.</span></p>
+
+                            <p>This decision established the doctrine of judicial review, giving the Court the power to declare acts of Congress unconstitutional. Though the immediate effect of the decision was to prevent Marbury from getting his commission, the long-term consequence was to establish the judiciary as an independent and co-equal branch of government.</p>
+                        </div>
+
+                        <div class="case-summary">
+                            <div class="summary-section">
+                                <div class="summary-title">Parties</div>
+                                <div class="summary-content">William Marbury v. James Madison</div>
+                            </div>
+
+                            <div class="summary-section">
+                                <div class="summary-title">Court</div>
+                                <div class="summary-content">U.S. Supreme Court</div>
+                            </div>
+
+                            <div class="summary-section">
+                                <div class="summary-title">Key Holdings</div>
+                                <div class="key-point">Judicial review established as constitutional power</div>
+                                <div class="key-point">Constitution is supreme law of the land</div>
+                                <div class="key-point">Courts must invalidate unconstitutional legislation</div>
+                            </div>
+
+                            <div class="summary-section">
+                                <div class="summary-title">Significance</div>
+                                <div class="summary-content">
+                                    Foundational case establishing judiciary independence and supreme court authority to interpret constitution
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 16px;">Ask AI About This</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STUDY MODE VIEW -->
+                <div class="content-area study-view">
+                    <!-- Header -->
+                    <div style="width:100%;max-width:500px;text-align:center;">
+                        <h1 id="study-lesson-title" style="font-size:26px;font-weight:700;margin-bottom:6px;">Constitutional Law Foundations</h1>
+                        <p id="study-lesson-subtitle" style="color:var(--text-muted);font-size:13px;line-height:1.5;">Open a lesson card from the dashboard to load its flashcards here.</p>
+                    </div>
+
+                    <!-- Overall progress -->
+                    <div style="width:100%;max-width:500px;">
+                        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);margin-bottom:6px;">
+                            <span>Lesson Progress</span><span id="study-overall-pct">0%</span>
+                        </div>
+                        <div class="progress-bar" style="margin-bottom:0;"><div class="progress-fill" id="study-progress-fill" style="width:0%;"></div></div>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="study-tabs">
+                        <button class="study-tab-btn active" id="tab-flashcards" onclick="switchStudyTab('flashcards')">📇 Flashcards</button>
+                        <button class="study-tab-btn" id="tab-quiz" onclick="switchStudyTab('quiz')">❓ Quiz</button>
+                    </div>
+
+                    <!-- ---- FLASHCARD PANEL ---- -->
+                    <div class="study-panel active" id="panel-flashcards">
+                        <p id="study-progress-text" style="color:var(--text-muted);font-size:13px;align-self:flex-start;">Card 1 of 2</p>
+
+                        <div class="flashcard" id="study-flashcard">
+                            <div class="flashcard-label" id="study-flashcard-label">Question</div>
+                            <div class="flashcard-content" id="study-flashcard-content">What is the principle of judicial review established in Marbury v. Madison?</div>
+                            <div class="flashcard-hint" id="study-flashcard-hint">Click to reveal answer</div>
+                        </div>
+
+                        <div id="lesson-complete-banner" class="lesson-complete-banner">🎉 You've reviewed all flashcards! Now try the Quiz.</div>
+
+                        <div class="study-controls">
+                            <button class="study-btn secondary" onclick="previousCard()">← Previous</button>
+                            <button class="study-btn primary" onclick="nextCard()">Next →</button>
+                        </div>
+                    </div>
+
+                    <!-- ---- QUIZ PANEL ---- -->
+                    <div class="study-panel" id="panel-quiz">
+                        <div id="quiz-question-wrap" style="width:100%;">
+                            <p id="quiz-q-number" style="color:var(--text-muted);font-size:13px;margin-bottom:8px;">Question 1 of 5</p>
+                            <p id="quiz-question-text" style="font-size:17px;font-weight:600;margin-bottom:16px;">Loading…</p>
+                            <div id="quiz-options" style="display:flex;flex-direction:column;gap:10px;"></div>
+                        </div>
+                        <div id="quiz-result-banner" class="quiz-result-banner"></div>
+                        <div class="study-controls" style="justify-content:space-between;">
+                            <button class="study-btn secondary" id="quiz-prev-btn" onclick="quizPrev()">← Prev</button>
+                            <button class="study-btn primary"   id="quiz-next-btn" onclick="quizNext()">Next →</button>
+                            <button class="study-btn primary"   id="quiz-submit-btn" onclick="submitQuiz()" style="display:none;">Submit Quiz</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOTES VIEW -->
+                <div class="content-area notes-view">
+                    <div class="notes-header">
+                        <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 8px;">My Notes</h1>
+                        <p style="color: var(--text-muted); font-size: 14px;">Linked to: Marbury v. Madison</p>
+                    </div>
+
+                    <div class="note-editor">
+                        <input type="text" class="note-title-input" placeholder="Note title..." value="Judicial Review & Constitutional Authority">
+                        <textarea class="note-content-input" placeholder="Start typing your notes here... You can link this to cases and concepts.">Key Principle: Marbury v. Madison established the Supreme Court's power to determine constitutionality of laws.
+
+Implications:
+• Court has final authority on constitutional interpretation
+• "It is emphatically the province and duty of the judicial department to say what the law is"
+• Creates checks & balances between branches
+
+Historical Context:
+• 1803 decision during Jefferson administration
+• Political tension between executive and judiciary
+• Marshall's brilliant reasoning limited immediate power while establishing long-term authority
+
+Related Doctrine: Stare Decisis
+• Future courts must follow this precedent
+• Vertical stare decisis applies nationwide
+• Defines relationship between federal courts
+
+Study Notes:
+- Connect to Federalist 10 & 51 on separation of powers
+- Contrast with Dred Scott v. Sanford (flawed judicial review)
+- Compare international approaches to constitutional review</textarea>
+                        <div class="note-actions">
+                            <button class="note-save-btn">Save Note</button>
+                            <button class="btn btn-secondary">Link to Case</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SETTINGS VIEW -->
+                <div class="content-area settings-view">
+                    <h1 style="font-size: 28px; font-weight: 700; margin-bottom: 24px;">Settings</h1>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title">Appearance</div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="setting-label-name">Dark Mode</div>
+                                <div class="setting-label-desc">Use dark theme for reduced eye strain</div>
+                            </div>
+                            <button class="toggle-switch" id="dark-mode-toggle"></button>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="setting-label-name">Compact Mode</div>
+                                <div class="setting-label-desc">Reduce spacing for more information</div>
+                            </div>
+                            <button class="toggle-switch"></button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <div class="settings-section-title">Study Preferences</div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="setting-label-name">AI Suggestions</div>
+                                <div class="setting-label-desc">Show AI-generated study recommendations</div>
+                            </div>
+                            <button class="toggle-switch active"></button>
+                        </div>
+                        <div class="setting-item">
+                            <div class="setting-label">
+                                <div class="setting-label-name">Daily Digest</div>
+                                <div class="setting-label-desc">Receive daily summary of new cases</div>
+                            </div>
+                            <button class="toggle-switch active"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== THEME TOGGLE ====================
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const yearLevelSelect = document.getElementById('year-level-select');
+        const curriculumTrackTitle = document.getElementById('curriculum-track-title');
+        const curriculumTrackFocus = document.getElementById('curriculum-track-focus');
+        const moduleGrid = document.getElementById('module-grid');
+        const openStudyModeBtn = document.getElementById('open-study-mode-btn');
+        const studyLessonTitle = document.getElementById('study-lesson-title');
+        const studyLessonSubtitle = document.getElementById('study-lesson-subtitle');
+        const studyProgressFill = document.getElementById('study-progress-fill');
+        const studyProgressText = document.getElementById('study-progress-text');
+        const studyFlashcard = document.getElementById('study-flashcard');
+        const studyFlashcardLabel = document.getElementById('study-flashcard-label');
+        const studyFlashcardContent = document.getElementById('study-flashcard-content');
+        const studyFlashcardHint = document.getElementById('study-flashcard-hint');
+
+        const curriculumData = [
+            {
+                id: '1st-year',
+                label: '1st Year',
+                focus: 'Foundations of legal method and core public law concepts.',
+                modules: [
+                    { name: 'Introduction to Philippine Law', subject: 'Legal Foundations', lessons: 12, progress: 68 },
+                    { name: 'Persons and Family Relations', subject: 'Civil Law', lessons: 18, progress: 74 },
+                    { name: 'Constitutional Law I', subject: 'Public Law', lessons: 16, progress: 81 },
+                    { name: 'Statutory Construction', subject: 'Legal Method', lessons: 10, progress: 59 }
+                ]
+            },
+            {
+                id: '2nd-year',
+                label: '2nd Year',
+                focus: 'Building doctrine depth across obligations, rights, and procedure.',
+                modules: [
+                    { name: 'Obligations and Contracts', subject: 'Civil Law', lessons: 22, progress: 77 },
+                    { name: 'Constitutional Law II', subject: 'Public Law', lessons: 15, progress: 71 },
+                    { name: 'Criminal Law I', subject: 'Criminal Law', lessons: 20, progress: 84 },
+                    { name: 'Legal Research and Writing', subject: 'Skills Lab', lessons: 9, progress: 65 }
+                ]
+            },
+            {
+                id: '3rd-year',
+                label: '3rd Year',
+                focus: 'Advanced litigation, commercial law, and evidence review.',
+                modules: [
+                    { name: 'Evidence', subject: 'Remedial Law', lessons: 14, progress: 72 },
+                    { name: 'Corporation Law', subject: 'Commercial Law', lessons: 17, progress: 63 },
+                    { name: 'Criminal Procedure', subject: 'Remedial Law', lessons: 13, progress: 79 },
+                    { name: 'Property', subject: 'Civil Law', lessons: 19, progress: 70 }
+                ]
+            },
+            {
+                id: '4th-year',
+                label: '4th Year',
+                focus: 'Bar-focused integration, special laws, and practice readiness.',
+                modules: [
+                    { name: 'Taxation Law Review', subject: 'Tax Law', lessons: 21, progress: 61 },
+                    { name: 'Labor Law Review', subject: 'Labor Law', lessons: 18, progress: 75 },
+                    { name: 'Practice Court', subject: 'Advocacy', lessons: 8, progress: 88 },
+                    { name: 'Political Law Review', subject: 'Bar Review', lessons: 24, progress: 67 }
+                ]
+            }
+        ];
+
+        // ==================== LESSON CONTENT BANK ====================
+        const LESSON_BANK = {
+            'Introduction to Philippine Law': {
+                cards: [
+                    { front: 'What are the primary sources of Philippine law?', back: 'The Constitution, statutes enacted by Congress, administrative regulations, judicial decisions (jurisprudence), and international treaties ratified by the Philippines.' },
+                    { front: 'What is the hierarchy of Philippine courts?', back: 'Supreme Court → Court of Appeals → Regional Trial Courts (RTC) → Metropolitan/Municipal Trial Courts. The Sandiganbayan and Court of Tax Appeals are special courts at the CA level.' },
+                    { front: 'What is the principle of separation of powers?', back: 'Government power is divided among three branches — Executive (enforces law), Legislative (enacts law), and Judiciary (interprets law) — to prevent abuse and ensure checks and balances.' },
+                    { front: 'Define "jurisprudence" in the Philippine legal context.', back: 'Jurisprudence refers to the body of Supreme Court decisions interpreting statutes and the Constitution. Under Art. 8 of the Civil Code, judicial decisions form part of the legal system.' },
+                    { front: 'What is the rule of law?', back: 'The principle that every person and institution — including the government — is subject to the law. No one is above the law, and laws must be applied equally and consistently.' },
+                    { front: 'What is a "statute" vs. an "ordinance"?', back: 'A statute is a law enacted by Congress (national). An ordinance is a law enacted by a local government unit (city/municipality). Ordinances must not conflict with national law.' }
+                ],
+                quiz: [
+                    { q: 'Which is the highest source of Philippine law?', opts: ['The Civil Code', 'The Revised Penal Code', 'The Constitution', 'Supreme Court decisions'], ans: 2 },
+                    { q: 'What does Article 8 of the Civil Code establish?', opts: ['The Bill of Rights', 'Judicial decisions form part of the legal system', 'Marriage requirements', 'Criminal penalties'], ans: 1 },
+                    { q: 'Which court sits at the apex of the Philippine judiciary?', opts: ['Court of Appeals', 'Regional Trial Court', 'Sandiganbayan', 'Supreme Court'], ans: 3 },
+                    { q: 'What is the rule of law?', opts: ['The rule that only lawyers may interpret statutes', 'Every person and institution is subject to the law equally', 'The President has final say on all legal matters', 'Courts may ignore unjust laws'], ans: 1 },
+                    { q: 'An ordinance enacted by a city that conflicts with a national statute is:', opts: ['Valid if approved by DILG', 'Automatically valid', 'Void for being contrary to law', 'Enforceable locally only'], ans: 2 }
+                ]
+            },
+            'Persons and Family Relations': {
+                cards: [
+                    { front: 'When does legal personality begin under the Civil Code?', back: 'Under Art. 40, birth determines personality. However, a conceived child is considered born for all purposes favorable to it, provided it is born alive (Art. 41).' },
+                    { front: 'What are the requisites for a valid marriage in the Philippines?', back: '1. Legal capacity of the contracting parties (male and female, 18+); 2. Authority of the solemnizing officer; 3. Marriage license (with exceptions); 4. Marriage ceremony with personal appearance.' },
+                    { front: 'Distinguish void from voidable marriages.', back: 'Void marriages are void from the beginning (e.g., bigamous, incestuous, psychological incapacity under Art. 36). Voidable marriages are valid until annulled (e.g., fraud, force, impotence, STI).' },
+                    { front: 'What is parental authority under the Family Code?', back: 'The sum total of rights and obligations of parents over the person and property of their unemancipated children. It is inalienable and cannot be waived or transferred.' },
+                    { front: 'What is the default property regime of spouses in the Philippines?', back: 'Absolute Community of Property (ACP) under the Family Code (RA 8533). All property owned before and after marriage is jointly owned, with specific exclusions.' },
+                    { front: 'What is psychological incapacity under Art. 36?', back: 'A ground for void marriage. It refers to incapacity — not mere refusal — to comply with essential marital obligations. Per Santos v. CA, it must be grave, juridically antecedent, and incurable.' }
+                ],
+                quiz: [
+                    { q: 'Under Art. 40, when does civil personality begin?', opts: ['At conception', 'At birth', 'At age 18', 'Upon marriage'], ans: 1 },
+                    { q: 'A marriage between siblings is classified as:', opts: ['Voidable', 'Valid but irregular', 'Void', 'Annullable'], ans: 2 },
+                    { q: 'The default property regime under the Family Code is:', opts: ['Conjugal Partnership of Gains', 'Complete Separation of Property', 'Absolute Community of Property', 'Deferred Community'], ans: 2 },
+                    { q: 'Psychological incapacity as ground for void marriage must be:', opts: ['Diagnosed by a psychologist', 'Grave, juridically antecedent, and incurable', 'Proven only by medical records', 'Present after the wedding'], ans: 1 },
+                    { q: 'Parental authority is best described as:', opts: ['Transferable with court approval', 'Inalienable and cannot be waived', 'Lost upon legal separation', 'Automatic upon adoption'], ans: 1 }
+                ]
+            },
+            'Constitutional Law I': {
+                cards: [
+                    { front: 'What is the supremacy clause in the 1987 Constitution?', back: 'Art. VIII, Sec. 5(2) gives the Supreme Court the power to declare any treaty, law, or executive act unconstitutional. The Constitution is the supreme law; any act contrary to it is void.' },
+                    { front: 'What are the three components of judicial power under Art. VIII?', back: '1. Power to settle actual controversies involving legally demandable rights; 2. Power to determine grave abuse of discretion amounting to lack or excess of jurisdiction.' },
+                    { front: 'What is the doctrine of constitutional supremacy?', back: 'The Constitution is the fundamental law of the land. All statutes, executive acts, and judicial decisions must conform to it. Any law conflicting with it is null and void.' },
+                    { front: 'What is the bill of rights?', back: 'Art. III of the 1987 Constitution. It enumerates civil and political rights — due process, equal protection, free speech, right to counsel — that the State may not abridge.' },
+                    { front: 'What is due process of law?', back: 'Art. III, Sec. 1. Substantive due process: the law itself must be fair and reasonable. Procedural due process: the manner of enforcement must follow fair procedures (notice and hearing).' },
+                    { front: 'What is the equal protection clause?', back: 'Art. III, Sec. 1: No person shall be denied equal protection of the laws. It means substantially equal treatment of persons in similar circumstances; allows reasonable classifications.' }
+                ],
+                quiz: [
+                    { q: 'Which article of the 1987 Constitution contains the Bill of Rights?', opts: ['Article I', 'Article II', 'Article III', 'Article VIII'], ans: 2 },
+                    { q: 'Substantive due process requires that:', opts: ['A person gets a hearing before being penalized', 'The law itself is fair and reasonable', 'All laws be passed by 2/3 majority', 'Penalties must be proportional'], ans: 1 },
+                    { q: 'A law that treats two similarly-situated persons differently without reasonable basis violates:', opts: ['The supremacy clause', 'Equal protection clause', 'Due process clause', 'Separation of powers'], ans: 1 },
+                    { q: 'Grave abuse of discretion by a government branch can be reviewed by:', opts: ['The President', 'The Ombudsman', 'The Supreme Court', 'The Senate'], ans: 2 },
+                    { q: 'Any law directly conflicting with the Constitution is:', opts: ['Suspended pending review', 'Amended by Congress', 'Null and void', 'Referred to the President'], ans: 2 }
+                ]
+            },
+            'Statutory Construction': {
+                cards: [
+                    { front: 'What is the primary rule of statutory construction?', back: 'If the language of the law is clear and unambiguous, it must be applied literally. Courts may not seek intent beyond the plain text (verba legis rule).' },
+                    { front: 'What is the ratio legis rule?', back: 'When a law is ambiguous, its spirit, purpose, and intent govern interpretation. The reason behind the law must guide application — spirit over letter.' },
+                    { front: 'Explain the rule of expressio unius est exclusio alterius.', back: 'The express mention of one thing implies the exclusion of others. If a statute enumerates specific items, unlisted items are excluded from the statute\'s coverage.' },
+                    { front: 'What is the doctrine of casus omissus?', back: 'A case omitted from a statute cannot be supplied by the courts. Gaps in legislation must be filled by Congress, not by judicial interpretation.' },
+                    { front: 'What is ejusdem generis?', back: 'When general words follow specific words in a statute, the general words are limited to the same class or category as the specific words. Context limits the general term.' },
+                    { front: 'How are penal statutes construed?', back: 'Strictly against the State and liberally in favor of the accused. If there is ambiguity in a criminal law, the interpretation favorable to the accused prevails.' }
+                ],
+                quiz: [
+                    { q: 'The verba legis rule means:', opts: ['Courts must always look at legislative history', 'Clear statutory text is applied as written', 'Penal laws favor the prosecution', 'Intent overrides text always'], ans: 1 },
+                    { q: 'Expressio unius est exclusio alterius means:', opts: ['One interpretation excludes others', 'Mention of specific things excludes unlisted ones', 'General words limit specific words', 'Penal statutes are strictly construed'], ans: 1 },
+                    { q: 'Penal statutes are construed:', opts: ['Liberally for the State', 'Strictly against the State / liberally for the accused', 'Based on the victim\'s interest', 'By the executive branch'], ans: 1 },
+                    { q: 'Ejusdem generis restricts general words by:', opts: ['The ratio legis of the statute', 'The category of the specific words preceding them', 'The plain meaning rule', 'The casus omissus doctrine'], ans: 1 },
+                    { q: 'Under casus omissus, gaps in legislation are filled by:', opts: ['The Supreme Court', 'The President', 'Congress', 'Administrative agencies'], ans: 2 }
+                ]
+            },
+            'Obligations and Contracts': {
+                cards: [
+                    { front: 'Define obligation under the Civil Code.', back: 'An obligation is a juridical necessity to give, to do, or not to do. (Art. 1156). It has four essential requisites: a juridical tie, active subject (creditor), passive subject (debtor), and object.' },
+                    { front: 'What are the essential elements of a valid contract?', back: '1. Consent of contracting parties; 2. Object certain which is the subject matter; 3. Cause of the obligation (consideration). (Art. 1318)' },
+                    { front: 'What is breach of contract?', back: 'Failure by a party to perform an obligation when due. It may be total (absolute non-performance) or partial. The aggrieved party may demand fulfillment or rescission, plus damages.' },
+                    { front: 'Distinguish rescission from annulment.', back: 'Rescission (Art. 1380) resolves a valid contract for economic damage. Annulment (Art. 1390) voids a voidable contract due to consent defects (fraud, violence, intimidation, mistake).' },
+                    { front: 'What is the principle of relativity of contracts?', back: 'Contracts take effect only between the parties, their assigns, and heirs. Third parties are generally not bound or benefited by a contract. (Art. 1311)' },
+                    { front: 'What is mora solvendi?', back: 'Default on the part of the debtor — failure to perform the obligation on time. The debtor becomes liable for all consequences of delay including damages and legal interest.' }
+                ],
+                quiz: [
+                    { q: 'Which is NOT an essential element of a contract under Art. 1318?', opts: ['Consent', 'Form', 'Object', 'Cause'], ans: 1 },
+                    { q: 'Relativity of contracts means:', opts: ['All contracts must be in writing', 'Contracts bind only the parties and their heirs/assigns', 'Third parties can always sue on any contract', 'Contracts are absolute and irrevocable'], ans: 1 },
+                    { q: 'A contract entered into through fraud is:', opts: ['Void', 'Voidable', 'Unenforceable', 'Rescissible'], ans: 1 },
+                    { q: 'Mora solvendi refers to:', opts: ['Delay by the creditor', 'Delay by the debtor', 'Mistake in the contract', 'Fraud by a third party'], ans: 1 },
+                    { q: 'Rescission under Art. 1380 is a remedy for:', opts: ['Contracts void from the start', 'Contracts involving economic lesion or fraud against creditors', 'Contracts entered under duress', 'Contracts with illegal cause'], ans: 1 }
+                ]
+            },
+            'Constitutional Law II': {
+                cards: [
+                    { front: 'What powers are vested in the Executive branch?', back: 'Executive power is vested in the President under Art. VII. Key powers: commander-in-chief, treaty-making, pardoning power, power of appointment, control over executive departments.' },
+                    { front: 'What is the pardoning power?', back: 'Art. VII, Sec. 19: The President may grant reprieves, commutations, pardons, and amnesty. It cannot cover impeachment cases or legislative contempt. Amnesty needs concurrence of Congress.' },
+                    { front: 'What is the power of judicial review vs. the power to declare war?', back: 'Judicial review is vested in the Supreme Court. The power to declare war is vested in Congress by a vote of 2/3 of both chambers in joint session.' },
+                    { front: 'What is the Doctrine of Command Responsibility?', back: 'A superior officer may be held liable for human rights violations committed by subordinates if the superior had knowledge, failed to prevent the act, or failed to punish the perpetrators.' },
+                    { front: 'What is an executive privilege?', back: 'The right of the President to withhold information from Congress or courts if disclosure would impair the performance of executive functions. It is not absolute and must yield to compelling need.' },
+                    { front: 'What is the legislative power of inquiry?', back: 'Art. VI, Sec. 21: Congress may conduct investigations in aid of legislation. Witnesses may invoke their right against self-incrimination but generally cannot refuse to appear.' }
+                ],
+                quiz: [
+                    { q: 'Amnesty by the President requires:', opts: ['Senate confirmation only', 'Concurrence of a majority of all members of Congress', 'Supreme Court approval', 'Cabinet vote'], ans: 1 },
+                    { q: 'The power to declare war is vested in:', opts: ['The President as commander-in-chief', 'The Supreme Court', 'Congress by 2/3 vote in joint session', 'The National Security Council'], ans: 2 },
+                    { q: 'Executive privilege is:', opts: ['Absolute and may not be overturned', 'A right to withhold information that is not absolute', 'Only applicable to military secrets', 'Granted by statute, not the Constitution'], ans: 1 },
+                    { q: 'Pardoning power does NOT cover:', opts: ['Murder cases', 'Rebellion', 'Impeachment cases', 'Drug offenses'], ans: 2 },
+                    { q: 'Congressional investigations in aid of legislation are authorized by:', opts: ['Art. VI, Sec. 21', 'Art. VII, Sec. 19', 'Art. VIII, Sec. 5', 'Art. III, Sec. 1'], ans: 0 }
+                ]
+            },
+            'Criminal Law I': {
+                cards: [
+                    { front: 'What are the characteristics of criminal law in the Philippines?', back: 'General (applies to everyone), Territorial (applies within Philippine territory with exceptions), Prospective (no retroactive effect, unless favorable to the accused).' },
+                    { front: 'What are the elements of a felony under the RPC?', back: '1. Act or omission; 2. Punishable by law (the RPC); 3. Act or omission performed through dolo (intent) or culpa (fault). (Art. 3)' },
+                    { front: 'Distinguish dolo from culpa.', back: 'Dolo — intentional felony; the act is done with deliberate intent. Culpa — culpable felony; the act results from imprudence, negligence, lack of foresight or skill. (Art. 3)' },
+                    { front: 'What is the Proximate Cause doctrine in criminal law?', back: 'The offender is liable for the natural, logical, and probable consequences of the felony committed, even if the resulting harm is not exactly what was intended. (Art. 4)' },
+                    { front: 'What are justifying circumstances?', back: 'Acts that are in conformity with law or are not against the law. The act is not criminal. Examples: self-defense, defense of relative, defense of stranger, fulfillment of duty, obedience to lawful order. (Art. 11)' },
+                    { front: 'What is the difference between conspiracy and proposal to commit a felony?', back: 'Conspiracy: two or more persons agree to commit a felony. Proposal: one person who has decided to commit a felony proposes its execution to another. Both are punishable only in specific cases.' }
+                ],
+                quiz: [
+                    { q: 'Under Art. 3 RPC, felonies committed through imprudence are called:', opts: ['Intentional felonies', 'Culpable felonies', 'Quasi-offenses', 'Complex crimes'], ans: 1 },
+                    { q: 'The characteristic of criminal law meaning it applies to all persons in the Philippines is:', opts: ['Territorial', 'Prospective', 'General', 'Specific'], ans: 2 },
+                    { q: 'Self-defense under Art. 11 is a:', opts: ['Exempting circumstance', 'Mitigating circumstance', 'Justifying circumstance', 'Aggravating circumstance'], ans: 2 },
+                    { q: 'Under Art. 4 RPC, criminal liability is incurred by:', opts: ['Only intentional acts', 'Any person who commits a felony even if the wrong done differs from what was intended', 'Acts punishable under special laws only', 'Persons with full capacity only'], ans: 1 },
+                    { q: 'Conspiracy to commit a crime is punishable:', opts: ['In all cases', 'Only when specifically provided by law', 'Never, only the completed crime is punishable', 'Only for heinous crimes'], ans: 1 }
+                ]
+            },
+            'Legal Research and Writing': {
+                cards: [
+                    { front: 'What is the IRAC method in legal writing?', back: 'Issue — identify the legal question; Rule — state the applicable law; Application — apply the rule to the facts; Conclusion — state the outcome. Core framework for legal analysis.' },
+                    { front: 'What is a primary source vs. secondary source in legal research?', back: 'Primary: the law itself — statutes, constitutional text, Supreme Court decisions, regulations. Secondary: commentary on the law — law review articles, textbooks, legal encyclopedias, digests.' },
+                    { front: 'What makes a citation authoritative in Philippine legal writing?', back: 'Supreme Court decisions (en banc > division), the Constitution, Republic Acts, and IRRs are authoritative. Obiter dicta and dissenting opinions are persuasive but not binding.' },
+                    { front: 'What is obiter dictum?', back: 'A remark or statement in a judicial opinion that is not essential to the decision and is not binding precedent. Contrasted with ratio decidendi, which is the binding legal reasoning of the case.' },
+                    { front: 'What is the ratio decidendi?', back: 'The binding legal reason for the court\'s decision — the point of law on which the case turns. It is the part of a ruling that sets precedent under stare decisis.' },
+                    { front: 'What are the elements of a persuasive legal memorandum?', back: 'Caption/heading, Statement of Facts, Question Presented, Brief Answer, Discussion (IRAC), and Conclusion. Clarity, conciseness, accuracy, and proper citation are essential.' }
+                ],
+                quiz: [
+                    { q: 'In the IRAC method, "A" stands for:', opts: ['Authority', 'Application', 'Analysis', 'Argument'], ans: 1 },
+                    { q: 'Supreme Court en banc decisions vs. division decisions:', opts: ['Division decisions are more authoritative', 'En banc decisions carry greater authority', 'Both are equally binding', 'Neither is binding on lower courts'], ans: 1 },
+                    { q: 'Ratio decidendi is best described as:', opts: ['The background facts of a case', 'The court\'s binding legal reasoning', 'A dissenting opinion', 'The obiter statement'], ans: 1 },
+                    { q: 'A secondary source in legal research is:', opts: ['A Republic Act', 'A Supreme Court decision', 'A law review article', 'An IRR issued by an agency'], ans: 2 },
+                    { q: 'Obiter dictum in a court decision is:', opts: ['Binding precedent', 'Persuasive but not binding', 'Never cited in court', 'More authoritative than ratio decidendi'], ans: 1 }
+                ]
+            },
+            'Evidence': {
+                cards: [
+                    { front: 'What is evidence under the Rules of Court?', back: 'The means, sanctioned by the Rules of Court, of ascertaining in a judicial proceeding the truth respecting a matter of fact. (Rule 128, Sec. 1)' },
+                    { front: 'What is the best evidence rule?', back: 'When the subject of inquiry is the contents of a document, no evidence shall be admissible other than the original document itself, except in cases provided by the Rules. (Rule 130, Sec. 3)' },
+                    { front: 'What is hearsay evidence and its exception?', back: 'Hearsay: out-of-court statement offered to prove the truth of the matter asserted. Generally inadmissible. Exceptions include dying declarations, res gestae, entries in official records, and learned treatises.' },
+                    { front: 'What is the fruit of the poisonous tree doctrine?', back: 'Evidence obtained through an illegal search or arrest (the poisonous tree) is inadmissible, and any evidence derived from it (the fruit) is also inadmissible. Protects Art. III, Sec. 2-3.' },
+                    { front: 'What is judicial notice?', back: 'Cognizance of facts by a court without proof. Mandatory for laws of nature, official acts of government. Discretionary for matters of common knowledge. (Rule 129)' },
+                    { front: 'Define preponderance of evidence vs. proof beyond reasonable doubt.', back: 'Preponderance: civil standard — greater weight of evidence. Proof beyond reasonable doubt: criminal standard — moral certainty that the accused is guilty. Any reasonable doubt favors acquittal.' }
+                ],
+                quiz: [
+                    { q: 'The best evidence rule applies to:', opts: ['Testimonial evidence', 'Real evidence', 'Contents of a document', 'Circumstantial evidence'], ans: 2 },
+                    { q: 'Hearsay evidence is generally:', opts: ['Admissible', 'Inadmissible', 'Always accepted as true', 'Required in civil cases'], ans: 1 },
+                    { q: 'Evidence derived from an illegal search is excluded under:', opts: ['The best evidence rule', 'The hearsay rule', 'The fruit of the poisonous tree doctrine', 'Judicial notice'], ans: 2 },
+                    { q: 'The standard of proof in criminal cases is:', opts: ['Preponderance of evidence', 'Clear and convincing evidence', 'Substantial evidence', 'Proof beyond reasonable doubt'], ans: 3 },
+                    { q: 'Judicial notice eliminates the need for:', opts: ['Cross-examination', 'Formal proof of matters taken notice of', 'A summons', 'A court order'], ans: 1 }
+                ]
+            },
+            'Corporation Law': {
+                cards: [
+                    { front: 'Define a corporation under the Revised Corporation Code (RCC).', back: 'An artificial being created by operation of law, having the right of succession, and the powers, attributes, and properties expressly authorized by law or incident to its existence. (Sec. 2, RCC)' },
+                    { front: 'What is the doctrine of piercing the corporate veil?', back: 'When the corporate fiction is used as a shield for fraud or illegality, courts may disregard it and hold individuals personally liable. The corporate entity cannot be used to defeat justice.' },
+                    { front: 'What are the fiduciary duties of directors and officers?', back: 'Duty of Obedience (comply with the RCC and AOI), Duty of Diligence (act with ordinary care), and Duty of Loyalty (act in the corporation\'s best interest, disclose conflicts of interest).' },
+                    { front: 'What is the business judgment rule?', back: 'Courts will not interfere with intra-corporate decisions made by directors honestly, in good faith, and within their authority. Directors are not liable for honest business errors.' },
+                    { front: 'What is a derivative suit?', back: 'A suit filed by a stockholder on behalf of the corporation against its officers/directors for acts prejudicial to the corporation when the corporation itself fails to act.' },
+                    { front: 'Distinguish common shares from preferred shares.', back: 'Common shares: basic ownership unit; voting rights, residual claim on assets. Preferred shares: preference in dividends and/or liquidation; may be non-voting. Terms fixed in Articles of Incorporation.' }
+                ],
+                quiz: [
+                    { q: 'The doctrine of piercing the corporate veil is applied when:', opts: ['A corporation has losses', 'Corporate fiction is used to commit fraud or injustice', 'A new director is elected', 'The corporation merges with another'], ans: 1 },
+                    { q: 'The business judgment rule protects directors who act:', opts: ['In their personal interest', 'In bad faith', 'Honestly and in good faith within authority', 'Against stockholder approval'], ans: 2 },
+                    { q: 'A derivative suit is filed by:', opts: ['The corporation against a third party', 'A stockholder on behalf of the corporation', 'The SEC against the corporation', 'A creditor against the directors'], ans: 1 },
+                    { q: 'Preferred shareholders generally have preference in:', opts: ['Voting only', 'Dividends and/or liquidation', 'Electing directors', 'Calling special meetings'], ans: 1 },
+                    { q: 'Which duty requires a director to act in the corporation\'s best interest and disclose conflicts?', opts: ['Duty of Obedience', 'Duty of Diligence', 'Duty of Loyalty', 'Duty of Care'], ans: 2 }
+                ]
+            },
+            'Criminal Procedure': {
+                cards: [
+                    { front: 'What is the purpose of criminal procedure?', back: 'To ascertain the truth and apply the law in a manner that upholds rights of the accused while ensuring justice is served. Governed by the Revised Rules on Criminal Procedure.' },
+                    { front: 'What are the requisites of a valid arrest without warrant?', back: 'Rule 113, Sec. 5: In flagrante delicto (caught in the act), hot pursuit (within 24 hours, probable cause), escapee from penal establishment. Any other warrantless arrest is invalid.' },
+                    { front: 'What is the exclusionary rule under the Constitution?', back: 'Art. III, Sec. 3(2): Evidence obtained in violation of the right against unreasonable searches and seizures is inadmissible in any proceeding.' },
+                    { front: 'What is the right to a speedy trial?', back: 'Art. III, Sec. 14(2): The accused has the right to a speedy, impartial, and public trial. Violation may result in dismissal of the case with prejudice (permanent bar to re-prosecution).' },
+                    { front: 'What is double jeopardy?', back: 'Art. III, Sec. 21: No person shall be twice put in jeopardy for the same offense. Requisites: valid first prosecution, competent court, valid plea, acquittal/conviction/dismissal without consent.' },
+                    { front: 'What is the Doctrine of Res Judicata in criminal cases?', back: 'A final judgment on the merits bars re-litigation of the same cause between the same parties. In criminal law it supports double jeopardy — finality of acquittal is absolute.' }
+                ],
+                quiz: [
+                    { q: 'In flagrante delicto arrest means:', opts: ['Arrested hours after the crime', 'Arrested during the commission of a crime', 'Arrested by a judge\'s order', 'Arrested under a warrant'], ans: 1 },
+                    { q: 'The exclusionary rule makes illegally obtained evidence:', opts: ['Admissible with limitations', 'Inadmissible in any proceeding', 'Admissible only in civil cases', 'Subject to judicial discretion'], ans: 1 },
+                    { q: 'Double jeopardy protects the accused from:', opts: ['Being tried in two courts simultaneously', 'Being tried twice for the same offense', 'Paying double fines', 'Serving sentence in two jails'], ans: 1 },
+                    { q: 'A violation of the right to speedy trial may result in:', opts: ['Reduction of sentence', 'Change of venue', 'Dismissal with prejudice', 'Mistrial only'], ans: 2 },
+                    { q: 'Hot pursuit warrantless arrest requires:', opts: ['12-hour window', 'Reasonable belief based on personal knowledge within 24 hours', 'A judge\'s verbal authority', 'Video evidence'], ans: 1 }
+                ]
+            },
+            'Property': {
+                cards: [
+                    { front: 'How are things classified under the Civil Code?', back: 'Immovable (real) property: land, buildings, mines, and things attached to real property. Movable (personal) property: all others. Classification determines applicable rules on ownership and transfer.' },
+                    { front: 'What is the principle of accession?', back: 'The owner of a thing owns all that is produced by it and all that is incorporated or attached to it. Includes accession continua (natural additions) and accession discreta (fruits).' },
+                    { front: 'What is prescription (acquisitive) of ownership?', back: 'Ownership of immovable property acquired through ordinary prescription: 10 years with good faith and just title; extraordinary: 30 years without need for title or good faith. (Arts. 1134-1137)' },
+                    { front: 'What is co-ownership?', back: 'Ownership of an undivided thing by two or more persons. Each co-owner has a full ownership of their ideal share and may alienate it, but not the whole thing. (Art. 484)' },
+                    { front: 'What is easement?', back: 'A real right constituted on another\'s property for the benefit of a dominant tenement. Voluntary or legal (compulsory). Examples: right of way, light and view, drainage.' },
+                    { front: 'What is the Torrens system?', back: 'A system of land registration under PD 1529 (Property Registration Decree) that gives a Torrens title indefeasibility and conclusiveness. Protects the innocent purchaser for value.' }
+                ],
+                quiz: [
+                    { q: 'Land is classified under the Civil Code as:', opts: ['Movable property', 'Immovable property', 'Fungible property', 'Consumable property'], ans: 1 },
+                    { q: 'Ordinary acquisitive prescription of immovables requires:', opts: ['5 years with just title', '10 years with good faith and just title', '20 years without title', '30 years with bad faith'], ans: 1 },
+                    { q: 'The Torrens system provides a title that is:', opts: ['Subject to oral claims', 'Indefeasible and conclusive', 'Provisional only', 'Revocable by the LRA'], ans: 1 },
+                    { q: 'An easement of right of way is an example of a:', opts: ['Personal right', 'Contract right', 'Real right on another\'s property', 'Ownership right'], ans: 2 },
+                    { q: 'In co-ownership, each co-owner may:', opts: ['Sell the entire property alone', 'Alienate only their ideal share', 'Mortgage the whole property', 'Register the title in their name only'], ans: 1 }
+                ]
+            },
+            'Taxation Law Review': {
+                cards: [
+                    { front: 'What are the basic principles of taxation in the Philippines?', back: 'Fiscal adequacy (revenue must be sufficient), Administrative feasibility (efficient collection), and Theoretical justice (taxes based on ability to pay). Also: uniformity, equitability, progressive taxation.' },
+                    { front: 'What is the situs of taxation?', back: 'The place where a tax can be validly imposed. For real property: where located. For income: where earned. For intangibles: domicile of the owner (unless otherwise provided by law).' },
+                    { front: 'What is the lifeblood doctrine in taxation?', back: 'Taxes are the lifeblood of the State; without taxes, the government cannot function. Courts must apply tax laws strictly to ensure the government collects the revenue it is legally entitled to.' },
+                    { front: 'Distinguish tax from a fee.', back: 'Tax: enforced contribution levied for public revenue. Fee: charge for a specific service or regulation. Fees do not need congressional authority and must be reasonable to cover cost.' },
+                    { front: 'What is double taxation?', back: 'Taxing the same person twice for the same property, transaction, or income for the same purpose, in the same year, by the same taxing authority. Direct double taxation is generally prohibited.' },
+                    { front: 'What is the concept of tax exemption?', back: 'A grant of immunity from tax, construed strictly against the taxpayer. The burden is on the claimant to prove the exemption. Tax exemptions are not presumed.' }
+                ],
+                quiz: [
+                    { q: 'The lifeblood doctrine states that:', opts: ['Taxes may be waived by the President', 'Taxes are essential for government function and must be strictly collected', 'Tax exemptions are broadly construed', 'Taxpayers can challenge any tax'], ans: 1 },
+                    { q: 'The situs of taxation for real property is:', opts: ['The owner\'s domicile', 'Where the property is located', 'The nearest city hall', 'The BIR regional office'], ans: 1 },
+                    { q: 'Tax exemptions are construed:', opts: ['Liberally in favor of the taxpayer', 'Strictly against the taxpayer claiming exemption', 'Based on the taxpayer\'s good faith', 'Equally for all taxpayers'], ans: 1 },
+                    { q: 'Double taxation is generally prohibited because it violates:', opts: ['Situs of taxation', 'Fiscal adequacy', 'Equal protection and uniformity', 'Administrative feasibility'], ans: 2 },
+                    { q: 'The difference between a tax and a fee is:', opts: ['Fees are larger amounts', 'Taxes fund public revenue; fees are for specific services', 'Fees require Congressional authority', 'Taxes are optional'], ans: 1 }
+                ]
+            },
+            'Labor Law Review': {
+                cards: [
+                    { front: 'What is the state policy on labor under the Constitution?', back: 'Art. XIII, Sec. 3: The State shall afford full protection to labor, local and overseas, organized and unorganized, and promote full employment and equality of employment opportunities.' },
+                    { front: 'What is the four-fold test for employer-employee relationship?', back: '1. Power to hire; 2. Payment of wages; 3. Power to dismiss; 4. Power to control the employee\'s conduct (the most important). All four must concur.' },
+                    { front: 'What is security of tenure?', back: 'Art. XIII, Sec. 3 and Labor Code Art. 294: Regular employees may only be dismissed for just or authorized causes and only after due process. Dismissal without just cause is illegal.' },
+                    { front: 'Distinguish just cause from authorized cause for dismissal.', back: 'Just cause: employee fault — serious misconduct, willful disobedience, fraud, gross negligence. Authorized cause: business reasons — retrenchment, redundancy, closure, disease. Different notice and pay requirements.' },
+                    { front: 'What is the right to self-organization?', back: 'Art. III, Sec. 8 and Art. XIII, Sec. 3: Workers have the right to form, join, or assist unions. The right also covers collective bargaining and negotiation with employers.' },
+                    { front: 'What are the mandatory benefits under Philippine labor law?', back: '13th month pay (PD 851), SSS/PhilHealth/Pag-IBIG contributions, 5 days Service Incentive Leave (SIL), overtime pay (25% for OT, 30% for holiday OT), rest day, and holiday pay.' }
+                ],
+                quiz: [
+                    { q: 'The most important factor in the four-fold test is:', opts: ['Power to hire', 'Payment of wages', 'Power to control', 'Power to dismiss'], ans: 2 },
+                    { q: 'Security of tenure means a regular employee can only be dismissed for:', opts: ['Any reason with 30-day notice', 'Just or authorized cause with due process', 'Employer discretion alone', 'Loss of confidence always'], ans: 1 },
+                    { q: 'Retrenchment is classified as:', opts: ['Just cause', 'Authorized cause', 'Illegal dismissal', 'Constructive dismissal'], ans: 1 },
+                    { q: '13th month pay is mandated under:', opts: ['The Labor Code Art. 294', 'PD 851', 'RA 6715', 'Art. XIII Section 3'], ans: 1 },
+                    { q: 'The right to self-organization allows workers to:', opts: ['Set their own wages', 'Form or join unions and bargain collectively', 'Strike at any time', 'Refuse all assignments'], ans: 1 }
+                ]
+            },
+            'Practice Court': {
+                cards: [
+                    { front: 'What is the structure of a complaint under the Rules of Civil Procedure?', back: 'Caption (court, parties, case number), Body (jurisdictional facts, cause of action, supporting facts), Prayer (specific reliefs sought), Verification and Certification against forum shopping.' },
+                    { front: 'What is the certification against forum shopping?', back: 'A sworn statement by the plaintiff that no other action involving the same issues is pending in any court. Required under Rule 7, Sec. 5. Failure is ground for dismissal.' },
+                    { front: 'What is direct examination vs. cross-examination?', back: 'Direct: questioning your own witness to elicit favorable testimony. Cross: questioning the opposing party\'s witness to test credibility and uncover inconsistencies. Cross is limited to matters raised on direct.' },
+                    { front: 'What is a demurrer to evidence?', back: 'Filed by the defendant after plaintiff rests, arguing plaintiff\'s evidence is insufficient to sustain a verdict. In criminal cases, a demurrer with leave preserves the right to present evidence.' },
+                    { front: 'What is the purpose of pre-trial?', back: 'Rule 18: To simplify issues, consider stipulations, mark exhibits, identify witnesses, explore settlement, and determine trial schedule. Pre-trial is mandatory. Failure by plaintiff = dismissal.' },
+                    { front: 'What are the modes of discovery?', back: 'Depositions, interrogatories to parties, requests for admission, production or inspection of documents, and physical/mental examination. Goal: narrow issues and prevent surprise at trial.' }
+                ],
+                quiz: [
+                    { q: 'The certification against forum shopping is required under:', opts: ['Rule 5, Sec. 1', 'Rule 7, Sec. 5', 'Rule 13, Sec. 2', 'Rule 18, Sec. 1'], ans: 1 },
+                    { q: 'A demurrer to evidence filed without leave of court in a criminal case means:', opts: ['The accused waives the right to present evidence if denied', 'The case is dismissed automatically', 'A new trial is granted', 'The prosecution re-opens its case'], ans: 0 },
+                    { q: 'Pre-trial in civil cases is initiated by:', opts: ['The judge motu proprio only', 'Motion of either party or court motu proprio', 'Only the plaintiff', 'Only after answer is filed and within 5 days of last pleading'], ans: 3 },
+                    { q: 'Cross-examination is limited to:', opts: ['Any topic the cross-examiner wishes', 'Matters covered in direct examination and credibility', 'Only documentary evidence', 'Facts admitted in pre-trial'], ans: 1 },
+                    { q: 'Which mode of discovery requires a party to formally admit or deny specific facts?', opts: ['Deposition', 'Interrogatories', 'Request for Admission', 'Production of documents'], ans: 2 }
+                ]
+            },
+            'Political Law Review': {
+                cards: [
+                    { front: 'What are the essential elements of a State?', back: 'People (permanent population), Territory (defined area), Government (organized administration), and Sovereignty (supreme and independent authority). All four must be present.' },
+                    { front: 'What is sovereignty?', back: 'The supreme and independent power of a State to govern itself. Internal sovereignty: supremacy over all persons and things within territory. External: freedom from foreign control.' },
+                    { front: 'What is the principle of state immunity from suit?', back: 'Art. XVI, Sec. 3: The State may not be sued without its consent. Exceptions: when the State acts in a proprietary (not governmental) capacity, or when it files a suit (waiver).' },
+                    { front: 'What is the doctrine of constitutional construction?', back: 'The Constitution must be interpreted to give effect to the framers\' intent, read as a whole, with words given their ordinary meaning unless technical terms are used.' },
+                    { front: 'What are the modes of acquiring territory?', back: 'Discovery and occupation, prescription, cession, conquest (now prohibited under UN Charter), and accretion. Accretion is the gradual addition to land by natural forces.' },
+                    { front: 'What are political questions?', back: 'Questions vested in the political branches (Executive or Legislative) by the Constitution. Courts traditionally decline to rule on political questions, but Art. VIII allows review of grave abuse of discretion.' }
+                ],
+                quiz: [
+                    { q: 'The four elements of a State are:', opts: ['People, Army, Government, Sovereignty', 'People, Territory, Government, Sovereignty', 'Land, Population, Laws, Courts', 'Citizens, Resources, Constitution, Borders'], ans: 1 },
+                    { q: 'State immunity from suit is found in:', opts: ['Art. III, Sec. 1', 'Art. VI, Sec. 21', 'Art. XVI, Sec. 3', 'Art. VII, Sec. 19'], ans: 2 },
+                    { q: 'The State MAY be sued without its consent when:', opts: ['The President authorizes it', 'It acts in a proprietary capacity', 'Congress passes a law requiring it', 'A foreign State files the suit'], ans: 1 },
+                    { q: 'Conquest as a mode of acquiring territory is now:', opts: ['Recognized by ASEAN', 'Prohibited under the UN Charter', 'Allowed between developing nations', 'Legal with Security Council approval'], ans: 1 },
+                    { q: 'Courts may review political questions only for:', opts: ['Policy wisdom', 'Grave abuse of discretion', 'Budgetary concerns', 'Electoral disputes only'], ans: 1 }
+                ]
+            }
+        };
+
+        // ==================== PROGRESS TRACKING ====================
+        function getProgress() {
+            try { return JSON.parse(localStorage.getItem('lms_progress') || '{}'); }
+            catch(e) { return {}; }
+        }
+        function saveProgress(key, data) {
+            const p = getProgress();
+            p[key] = Object.assign(p[key] || {}, data);
+            localStorage.setItem('lms_progress', JSON.stringify(p));
+        }
+        function moduleKey(yearId, moduleIndex) { return `${yearId}__${moduleIndex}`; }
+
+        // ==================== QUIZ STATE ====================
+        let activeQuizQuestions = [];
+        let quizAnswers = {};
+        let currentQuizIndex = 0;
+
+        function buildActiveQuiz(module) {
+            const bank = (LESSON_BANK[module.name] || {}).quiz || [];
+            const shuffled = [...bank].sort(() => Math.random() - 0.5);
+            return shuffled.slice(0, Math.min(5, shuffled.length));
+        }
+
+        function switchStudyTab(tab) {
+            document.getElementById('tab-flashcards').classList.toggle('active', tab === 'flashcards');
+            document.getElementById('tab-quiz').classList.toggle('active', tab === 'quiz');
+            document.getElementById('panel-flashcards').classList.toggle('active', tab === 'flashcards');
+            document.getElementById('panel-quiz').classList.toggle('active', tab === 'quiz');
+            if (tab === 'quiz') renderQuizQuestion();
+        }
+
+        function renderQuizQuestion() {
+            const q = activeQuizQuestions[currentQuizIndex];
+            if (!q) return;
+            document.getElementById('quiz-q-number').textContent = `Question ${currentQuizIndex + 1} of ${activeQuizQuestions.length}`;
+            document.getElementById('quiz-question-text').textContent = q.q;
+            const optsDiv = document.getElementById('quiz-options');
+            optsDiv.innerHTML = '';
+            q.opts.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'quiz-option';
+                btn.textContent = opt;
+                const saved = quizAnswers[currentQuizIndex];
+                if (saved !== undefined) {
+                    btn.disabled = true;
+                    if (i === q.ans) btn.classList.add('correct');
+                    else if (i === saved && saved !== q.ans) btn.classList.add('wrong');
+                }
+                btn.addEventListener('click', () => {
+                    if (quizAnswers[currentQuizIndex] !== undefined) return;
+                    quizAnswers[currentQuizIndex] = i;
+                    renderQuizQuestion();
+                    updateQuizNav();
+                });
+                optsDiv.appendChild(btn);
+            });
+            document.getElementById('quiz-result-banner').style.display = 'none';
+            updateQuizNav();
+        }
+
+        function updateQuizNav() {
+            const allAnswered = Object.keys(quizAnswers).length === activeQuizQuestions.length;
+            const isLast = currentQuizIndex === activeQuizQuestions.length - 1;
+            document.getElementById('quiz-prev-btn').style.display = currentQuizIndex > 0 ? '' : 'none';
+            document.getElementById('quiz-next-btn').style.display = (!isLast) ? '' : 'none';
+            document.getElementById('quiz-submit-btn').style.display = (isLast && allAnswered) ? '' : 'none';
+        }
+
+        function quizNext() {
+            if (currentQuizIndex < activeQuizQuestions.length - 1) { currentQuizIndex++; renderQuizQuestion(); }
+        }
+        function quizPrev() {
+            if (currentQuizIndex > 0) { currentQuizIndex--; renderQuizQuestion(); }
+        }
+
+        function submitQuiz() {
+            let score = 0;
+            activeQuizQuestions.forEach((q, i) => { if (quizAnswers[i] === q.ans) score++; });
+            const pct = Math.round((score / activeQuizQuestions.length) * 100);
+            const pass = pct >= 60;
+            const banner = document.getElementById('quiz-result-banner');
+            banner.className = 'quiz-result-banner ' + (pass ? 'pass' : 'fail');
+            banner.textContent = pass
+                ? `✅ Passed! You scored ${score}/${activeQuizQuestions.length} (${pct}%). Great work!`
+                : `❌ Score: ${score}/${activeQuizQuestions.length} (${pct}%). Review the flashcards and try again.`;
+            banner.style.display = 'block';
+
+            // Save quiz score to progress
+            const key = activeLessonMeta._key;
+            if (key) {
+                const p = getProgress();
+                const existing = (p[key] || {}).quizBest || 0;
+                const best = Math.max(existing, pct);
+                saveProgress(key, { quizBest: best, quizScore: pct, quizDate: new Date().toLocaleDateString() });
+                // Update curriculum card progress
+                const parts = key.split('__');
+                if (parts.length === 2) {
+                    const yr = curriculumData.find(y => y.id === parts[0]);
+                    if (yr) {
+                        const mod = yr.modules[Number(parts[1])];
+                        if (mod) { mod.progress = Math.max(mod.progress, best); }
+                    }
+                }
+                renderCurriculum(yearLevelSelect.value);
+            }
+            document.getElementById('quiz-submit-btn').style.display = 'none';
+        }
+
+        // ==================== FLASHCARD STATE ====================
+        let activeLessonCards = [];
+        let currentLessonIndex = 0;
+        let activeLessonMeta = { title: 'Constitutional Law Foundations', subtitle: '', _key: '' };
+
+        function renderStudyCard() {
+            const currentCard = activeLessonCards[currentLessonIndex] || { front: '—', back: '—', hint: '' };
+            const progressPercent = activeLessonCards.length ? ((currentLessonIndex + 1) / activeLessonCards.length) * 100 : 0;
+
+            studyLessonTitle.textContent = activeLessonMeta.title;
+            studyLessonSubtitle.textContent = activeLessonMeta.subtitle;
+            document.getElementById('study-progress-text').textContent = `Card ${currentLessonIndex + 1} of ${activeLessonCards.length}`;
+            document.getElementById('study-overall-pct').textContent = `${Math.round(progressPercent)}%`;
+            studyProgressFill.style.width = `${progressPercent}%`;
+            studyFlashcard.classList.remove('flipped');
+            studyFlashcardLabel.textContent = 'Question';
+            studyFlashcardContent.textContent = currentCard.front;
+            studyFlashcardHint.textContent = currentCard.hint || 'Click to reveal answer';
+
+            const isLast = currentLessonIndex === activeLessonCards.length - 1;
+            const completeBanner = document.getElementById('lesson-complete-banner');
+            completeBanner.style.display = isLast ? 'block' : 'none';
+
+            if (activeLessonMeta._key) {
+                saveProgress(activeLessonMeta._key, {
+                    cardsReached: Math.max((getProgress()[activeLessonMeta._key] || {}).cardsReached || 0, currentLessonIndex + 1),
+                    totalCards: activeLessonCards.length
+                });
+            }
+        }
+
+        function openLesson(yearId, moduleIndex) {
+            const selectedYear = curriculumData.find(y => y.id === yearId) || curriculumData[0];
+            const selectedModule = selectedYear.modules[moduleIndex];
+            if (!selectedModule) return;
+
+            const key = moduleKey(yearId, moduleIndex);
+            const lessonData = LESSON_BANK[selectedModule.name] || {};
+            activeLessonCards = lessonData.cards || [];
+            activeLessonMeta = {
+                title: selectedModule.name,
+                subtitle: `${selectedYear.label} • ${selectedModule.subject} • ${selectedModule.lessons} lessons`,
+                _key: key
+            };
+            activeQuizQuestions = buildActiveQuiz(selectedModule);
+            quizAnswers = {};
+            currentQuizIndex = 0;
+            currentLessonIndex = 0;
+            renderStudyCard();
+            switchStudyTab('flashcards');
+            showView('study');
+        }
+
+        function nextCard() {
+            if (currentLessonIndex < activeLessonCards.length - 1) currentLessonIndex++;
+            renderStudyCard();
+        }
+        function previousCard() {
+            if (currentLessonIndex > 0) currentLessonIndex--;
+            renderStudyCard();
+        }
+
+        function renderCurriculum(yearId) {
+            const selectedYear = curriculumData.find(year => year.id === yearId) || curriculumData[0];
+
+            curriculumTrackTitle.textContent = `${selectedYear.label} Curriculum Track`;
+            curriculumTrackFocus.textContent = selectedYear.focus;
+            moduleGrid.innerHTML = selectedYear.modules.map((module, index) => `
+                <div class="module-card" data-year-id="${selectedYear.id}" data-module-index="${index}">
+                    <div class="module-card-top">
+                        <div>
+                            <div class="module-subject">${module.subject}</div>
+                            <div class="module-title">${module.name}</div>
+                        </div>
+                        <div class="module-lessons">${module.lessons} lessons</div>
+                    </div>
+                    <div>
+                        <div class="module-progress-row">
+                            <span>Completion</span>
+                            <span>${module.progress}%</span>
+                        </div>
+                        <div class="module-progress-track">
+                            <div class="module-progress-bar" style="width: ${module.progress}%"></div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            yearLevelSelect.value = selectedYear.id;
+        }
+
+        yearLevelSelect.innerHTML = curriculumData.map(year => `<option value="${year.id}">${year.label}</option>`).join('');
+        yearLevelSelect.addEventListener('change', (event) => {
+            renderCurriculum(event.target.value);
+        });
+        openStudyModeBtn.addEventListener('click', () => showView('study'));
+        moduleGrid.addEventListener('click', (event) => {
+            const moduleCard = event.target.closest('.module-card');
+            if (!moduleCard) return;
+
+            openLesson(moduleCard.getAttribute('data-year-id'), Number(moduleCard.getAttribute('data-module-index')));
+        });
+        renderCurriculum(curriculumData[0].id);
+
+        function toggleTheme() {
+            body.classList.toggle('light-mode');
+            body.classList.toggle('dark-mode');
+            const isDark = body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            themeToggle.textContent = isDark ? '☀️' : '🌙';
+            darkModeToggle.classList.toggle('active');
+        }
+
+        themeToggle.addEventListener('click', toggleTheme);
+        darkModeToggle.addEventListener('click', toggleTheme);
+
+        // Initialize theme from localStorage
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        if (savedTheme === 'dark') {
+            toggleTheme();
+        }
+
+        // ==================== NAVIGATION ====================
+        const navItems = document.querySelectorAll('.nav-item');
+        const contentAreas = document.querySelectorAll('.content-area');
+
+        function showView(viewName) {
+            // Hide all views
+            contentAreas.forEach(area => area.classList.remove('active'));
+
+            // Remove active from nav items
+            navItems.forEach(item => item.classList.remove('active'));
+
+            // Show selected view
+            if (viewName === 'dashboard') {
+                document.querySelector('.dashboard-view').classList.add('active');
+            } else if (viewName === 'chat') {
+                document.querySelector('.chat-view').classList.add('active');
+            } else if (viewName === 'cases') {
+                document.querySelector('.cases-view').classList.add('active');
+            } else if (viewName === 'case-detail') {
+                document.querySelector('.case-detail-view').classList.add('active');
+                document.querySelector('.cases-view').classList.remove('active');
+            } else if (viewName === 'study') {
+                document.querySelector('.study-view').classList.add('active');
+            } else if (viewName === 'notes') {
+                document.querySelector('.notes-view').classList.add('active');
+            } else if (viewName === 'settings') {
+                document.querySelector('.settings-view').classList.add('active');
+            }
+
+            // Set active nav item
+            const activeNav = document.querySelector(`[data-view="${viewName}"]`);
+            if (activeNav && activeNav.classList.contains('nav-item')) {
+                activeNav.classList.add('active');
+            }
+        }
+
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                const viewName = item.getAttribute('data-view');
+                showView(viewName);
+            });
+        });
+
+        // ==================== CARD NAVIGATION ====================
+        document.querySelectorAll('.card').forEach(card => {
+            card.addEventListener('click', () => {
+                const viewName = card.getAttribute('data-view');
+                showView(viewName);
+            });
+        });
+
+        // ==================== CASE LIBRARY NAVIGATION ====================
+        document.querySelectorAll('.case-item[data-view]').forEach(item => {
+            item.addEventListener('click', () => {
+                showView('case-detail');
+            });
+        });
+
+        // ==================== CHAT FUNCTIONALITY ====================
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+        const chatMessages = document.getElementById('chat-messages');
+        const suggestionBtns = document.querySelectorAll('.suggestion-btn');
+        const chatSuggestions = document.getElementById('chat-suggestions');
+
+        function addMessage(text, isUser = false) {
+            const message = document.createElement('div');
+            message.className = `message ${isUser ? 'user' : 'ai'}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.textContent = isUser ? 'You' : 'AI';
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = text;
+
+            content.appendChild(bubble);
+            message.appendChild(avatar);
+            message.appendChild(content);
+            chatMessages.appendChild(message);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Hide suggestions after first message
+            if (isUser && chatMessages.querySelectorAll('.message').length === 2) {
+                chatSuggestions.style.display = 'none';
+            }
+        }
+
+        function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            addMessage(text, true);
+            chatInput.value = '';
+
+            // Simulate AI response
+            setTimeout(() => {
+                const responses = [
+                    'This is an excellent question. Let me break this down for you with relevant precedents and legal principles.',
+                    'Great inquiry! This relates to several landmark cases I can reference. Would you like me to elaborate on any specific aspect?',
+                    'I found 3 relevant cases that address this topic. The key principles are well-established in case law.',
+                    'This is a complex area of law with interesting precedent. Let me provide some context and analysis.'
+                ];
+                const response = responses[Math.floor(Math.random() * responses.length)];
+                addMessage(response, false);
+            }, 500);
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        suggestionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                chatInput.value = btn.textContent;
+                sendMessage();
+            });
+        });
+
+        // ==================== FLASHCARD TOGGLE ====================
+        if (studyFlashcard) {
+            studyFlashcard.addEventListener('click', () => {
+                const currentCard = activeLessonCards[currentLessonIndex] || activeLessonCards[0];
+                const isFlipped = studyFlashcard.classList.toggle('flipped');
+
+                studyFlashcardLabel.textContent = isFlipped ? 'Answer' : 'Question';
+                studyFlashcardContent.textContent = isFlipped ? currentCard.back : currentCard.front;
+                studyFlashcardHint.textContent = isFlipped ? 'Click to return to the question' : (currentCard.hint || 'Click to reveal answer');
+            });
+        }
+
+        renderStudyCard();
+
+        // ==================== HIGHLIGHT FUNCTIONALITY ====================
+        const caseText = document.querySelector('.case-text');
+        if (caseText) {
+            caseText.addEventListener('mouseup', () => {
+                const selection = window.getSelection();
+                if (selection.toString().length > 0) {
+                    // Highlight text on selection
+                    const range = selection.getRangeAt(0);
+                    const span = document.createElement('span');
+                    span.className = 'highlight';
+                    try {
+                        range.surroundContents(span);
+                    } catch (e) {
+                        // Handle complex selections
+                    }
+                }
+            });
+        }
+
+        // ==================== RESPONSIVE ADJUSTMENTS ====================
+        function handleResize() {
+            const width = window.innerWidth;
+            if (width <= 768) {
+                document.querySelector('.sidebar-nav').style.overflowX = 'auto';
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+        handleResize();
+    </script>
+</body>
+</html>
