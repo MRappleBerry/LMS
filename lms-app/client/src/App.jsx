@@ -10,7 +10,7 @@ import Notes       from './views/Notes'
 import Settings    from './views/Settings'
 import ModuleGenerator from './views/ModuleGenerator'
 import ReaderPage from './views/ReaderPage'
-import { getDefaultRoute } from './data/books/catalog'
+import { getDefaultRoute, getSubjectMeta } from './data/books/catalog'
 
 /* FAB config per view -------------------------------------------------- */
 const FAB_CONFIG = {
@@ -82,6 +82,8 @@ export default function App() {
   const [viewKey,    setViewKey]    = useState(0)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [readerNavOpen, setReaderNavOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchText, setSearchText] = useState('')
   const fabRef = useRef(null)
 
   useEffect(() => {
@@ -102,6 +104,7 @@ export default function App() {
   }, [])
 
   const activeView = route.type === 'reader' ? 'reader' : route.view
+  const subjectMeta = route.type === 'reader' ? getSubjectMeta(route.subject) : null
 
   const navigatePath = useCallback((path) => {
     if (window.location.pathname === path) return
@@ -109,6 +112,12 @@ export default function App() {
     setRoute(parsePath(path))
     setViewKey(k => k + 1)
     setReaderNavOpen(false)
+    setSearchOpen(false)
+    setSearchText('')
+  }, [])
+
+  const handleSearch = useCallback(() => {
+    setSearchOpen(true)
   }, [])
 
   /* Navigate with a re-key so view-enter animation fires every time */
@@ -142,11 +151,45 @@ export default function App() {
     settings:  <Settings />,
   }), [navigate])
 
+  const quickRoutes = useMemo(() => ([
+    { id: 'dashboard', label: 'Home' },
+    { id: 'chat', label: 'AI Chat' },
+    { id: 'cases', label: 'Case Library' },
+    { id: 'study', label: 'Study Mode' },
+    { id: 'notes', label: 'My Notes' },
+    { id: 'modules', label: 'Module Generator' },
+    { id: 'settings', label: 'Settings' },
+  ]), [])
+
+  const readerMatches = useMemo(() => {
+    if (!subjectMeta) return []
+    const q = searchText.trim().toLowerCase()
+    if (!q) return subjectMeta.chapters.map(ch => ({
+      type: 'chapter',
+      chapterId: ch.id,
+      label: `Chapter ${ch.id}: ${ch.title}`,
+    }))
+
+    const items = []
+    for (const ch of subjectMeta.chapters) {
+      if (ch.title.toLowerCase().includes(q)) {
+        items.push({ type: 'chapter', chapterId: ch.id, label: `Chapter ${ch.id}: ${ch.title}` })
+      }
+      for (const sec of ch.sections || []) {
+        if (sec.heading.toLowerCase().includes(q)) {
+          items.push({ type: 'section', chapterId: ch.id, sectionId: sec.id, label: `Ch ${ch.id} · ${sec.heading}` })
+        }
+      }
+    }
+    return items.slice(0, 12)
+  }, [subjectMeta, searchText])
+
   return (
     <div className="fixed inset-0 bg-md-bg text-md-onsurf overflow-hidden">
       {/* Top App Bar */}
       <TopAppBar
         activeView={activeView}
+        onSearch={handleSearch}
         subject={route.subject}
         chapterId={route.chapterId}
         onReaderMenu={() => setReaderNavOpen(true)}
@@ -196,6 +239,56 @@ export default function App() {
         onNavigate={navigate}
         activeView={activeView}
       />
+
+      {/* Global Search */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/60 flex items-start justify-center p-4 pt-16" onClick={() => setSearchOpen(false)}>
+          <div className="w-full max-w-2xl bg-md-surf border border-md-outline/60 rounded-2xl shadow-elev3 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="p-3 border-b border-md-outline/50">
+              <input
+                autoFocus
+                value={searchText}
+                onChange={e => setSearchText(e.target.value)}
+                placeholder={route.type === 'reader' ? 'Search chapters or sections...' : 'Search routes...'}
+                className="w-full h-11 rounded-xl bg-md-surf2 border border-md-outline/60 px-3 text-sm text-md-onsurf placeholder-md-onsurfvar focus:outline-none focus:border-md-primary/60"
+              />
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto p-2">
+              {route.type === 'reader' ? (
+                <div className="space-y-1">
+                  {readerMatches.length === 0 && (
+                    <div className="px-3 py-2 text-sm text-md-onsurfvar">No matches found.</div>
+                  )}
+                  {readerMatches.map((item, idx) => (
+                    <button
+                      key={`${item.type}-${idx}`}
+                      onClick={() => navigatePath(`/course/${route.subject}/chapter/${item.chapterId}`)}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-sm text-md-onsurfvar hover:text-md-onsurf hover:bg-md-surf2 transition-colors"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {quickRoutes
+                    .filter(r => r.label.toLowerCase().includes(searchText.trim().toLowerCase()))
+                    .map(r => (
+                      <button
+                        key={r.id}
+                        onClick={() => navigate(r.id)}
+                        className="w-full text-left px-3 py-2.5 rounded-xl text-sm text-md-onsurfvar hover:text-md-onsurf hover:bg-md-surf2 transition-colors"
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
