@@ -2,13 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
   body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased;
+    background-color: #07071a;
+    color: #e4e4f8;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+    overflow: hidden;
   }
+
+  * { -webkit-tap-highlight-color: transparent; }
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2e2e58; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #4a4a80; }
+
+/* ── Ripple ──────────────────────────────────────────────────────── */
+.ripple-root { position: relative; overflow: hidden; }
+.ripple-wave {
+  position: absolute;
+  border-radius: 50%;
+  width: 100px; height: 100px;
+  margin-top: -50px; margin-left: -50px;
+  background: rgba(255,255,255,0.12);
+  transform: scale(0);
+  animation: rippleAnim 550ms cubic-bezier(0,0,0.2,1);
+  pointer-events: none;
+}
+@keyframes rippleAnim { to { transform: scale(6); opacity: 0; } }
+
+/* ── Flashcard 3-D flip ──────────────────────────────────────────── */
+.flashcard-scene { perspective: 900px; }
+.flashcard-inner {
+  position: relative;
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 480ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.flashcard-inner.flipped { transform: rotateY(180deg); }
+.flashcard-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.flashcard-back { transform: rotateY(180deg); }
+
+/* ── Skeleton shimmer ────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #161632 25%, #1c1c3e 50%, #161632 75%);
+  background-size: 200% 100%;
+  animation: shimmerAnim 1.4s infinite;
+  border-radius: 10px;
+}
+@keyframes shimmerAnim {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Bottom nav safe area ────────────────────────────────────────── */
+.nav-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 0px); }
+
+/* ── Elevated glass surface ──────────────────────────────────────── */
+.glass {
+  background: rgba(22, 22, 50, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+/* ── FAB ─────────────────────────────────────────────────────────── */
+.fab {
+  transition: transform 200ms cubic-bezier(0.2,0,0,1),
+              box-shadow 200ms;
+}
+.fab:hover { transform: scale(1.06); }
+.fab:active { transform: scale(0.95); }
+
+/* ── Card hover lift ─────────────────────────────────────────────── */
+.md-card {
+  transition: border-color 200ms, transform 200ms cubic-bezier(0.2,0,0,1);
+}
+.md-card:hover { transform: translateY(-2px); }
+
+/* ── Nav indicator pill ──────────────────────────────────────────── */
+.nav-pill {
+  transition: all 280ms cubic-bezier(0.2,0,0,1);
+}
+
+/* ── Progress bar anim ───────────────────────────────────────────── */
+.prog-bar { animation: progFill 900ms cubic-bezier(0.2,0,0,1) both; }
+@keyframes progFill { from { width: 0 !important; } }
+
+/* ── Dot typing indicator ────────────────────────────────────────── */
+.typing-dot { animation: typingDot 1.2s infinite ease-in-out; }
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingDot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
 }
 
 @layer utilities {
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-select { user-select: none; -webkit-user-select: none; }
 }
