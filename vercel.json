@@ -4,6 +4,10 @@
   "installCommand": "npm install",
   "framework": null,
   "rewrites": [
+    { "source": "/api/auth/google/start", "destination": "/api/auth?mode=google_start" },
+    { "source": "/api/auth/google/callback", "destination": "/api/auth" },
+    { "source": "/api/auth/session", "destination": "/api/auth?mode=session" },
+    { "source": "/api/auth/logout", "destination": "/api/auth?mode=logout" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]

@@ -1,15 +1,38 @@
 const {
   buildAppUrl,
+  buildGoogleState,
   createSignedToken,
+  getSessionFromRequest,
+  sanitizeReturnTo,
   setSessionCookie,
+  clearSessionCookie,
   verifyGoogleState,
   redirect,
-} = require('../../_auth')
-const { upsertUserFromGoogle } = require('../../_users')
+} = require('./_auth')
+const { upsertUserFromGoogle, findUserById } = require('./_users')
 
-module.exports = async (req, res) => {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed.' })
+async function handleGoogleStart(req, res) {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(500).json({ error: 'Google OAuth is not configured.' })
+  }
 
+  const returnTo = sanitizeReturnTo(req.query?.returnTo)
+  const state = buildGoogleState(returnTo)
+  const redirectUri = `${buildAppUrl(req)}/api/auth/google/callback`
+
+  const params = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    state,
+    prompt: 'select_account',
+  })
+
+  return redirect(res, `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`)
+}
+
+async function handleGoogleCallback(req, res) {
   const code = req.query?.code
   const stateRaw = req.query?.state
   const state = verifyGoogleState(stateRaw)
@@ -80,4 +103,40 @@ module.exports = async (req, res) => {
   } catch {
     return redirect(res, '/login?error=oauth_unexpected')
   }
+}
+
+async function handleSession(req, res) {
+  const session = getSessionFromRequest(req)
+  if (!session || session.type !== 'session' || !session.userId) {
+    return res.json({ authenticated: false, user: null })
+  }
+
+  const user = await findUserById(session.userId)
+  if (!user) {
+    return res.json({ authenticated: false, user: null })
+  }
+
+  return res.json({ authenticated: true, user })
+}
+
+async function handleLogout(req, res) {
+  clearSessionCookie(res)
+  return res.json({ success: true })
+}
+
+module.exports = async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  if (req.method === 'OPTIONS') return res.status(200).end()
+
+  const mode = req.query?.mode
+  const isCallback = Boolean(req.query?.code && req.query?.state)
+
+  if (req.method === 'GET' && mode === 'google_start') return handleGoogleStart(req, res)
+  if (req.method === 'GET' && isCallback) return handleGoogleCallback(req, res)
+  if (req.method === 'GET' && mode === 'session') return handleSession(req, res)
+  if (req.method === 'POST' && mode === 'logout') return handleLogout(req, res)
+
+  return res.status(405).json({ error: 'Method not allowed.' })
 }
