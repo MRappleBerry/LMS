@@ -18,7 +18,7 @@ async function handleGoogleStart(req, res) {
 
   const returnTo = sanitizeReturnTo(req.query?.returnTo)
   const state = buildGoogleState(returnTo)
-  const redirectUri = `${buildAppUrl(req)}/api/auth/google/callback`
+  const redirectUri = `${buildAppUrl(req)}/api/auth`
 
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID,
@@ -46,7 +46,7 @@ async function handleGoogleCallback(req, res) {
   }
 
   try {
-    const redirectUri = `${buildAppUrl(req)}/api/auth/google/callback`
+    const redirectUri = `${buildAppUrl(req)}/api/auth`
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
