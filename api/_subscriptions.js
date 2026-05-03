@@ -1,5 +1,6 @@
 const subscriptionStore = new Map()
 const accessStore = new Map()
+const { getSessionFromRequest } = require('./_auth')
 
 const DEFAULT_USER_ID = 'demo-user'
 const PREMIUM_SUBSCRIPTION_ID = 'premium-all-access'
@@ -8,6 +9,9 @@ const FREE_AI_PROMPT_LIMIT = 5
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
 function getUserId(req) {
+  const session = getSessionFromRequest(req)
+  if (session?.userId) return String(session.userId)
+
   const fromHeader = req.headers['x-user-id']
   const fromQuery = req.query?.userId
   const raw = fromHeader || fromQuery || DEFAULT_USER_ID

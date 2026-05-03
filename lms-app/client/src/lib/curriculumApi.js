@@ -17,6 +17,23 @@ export function getUserId() {
   }
 }
 
+export function setPreferredUserId(userId) {
+  if (!userId) return
+  try {
+    localStorage.setItem(USER_KEY, String(userId))
+  } catch {
+    // noop
+  }
+}
+
+export function clearPreferredUserId() {
+  try {
+    localStorage.removeItem(USER_KEY)
+  } catch {
+    // noop
+  }
+}
+
 export function getAuthHeaders() {
   return {
     'x-user-id': getUserId(),
@@ -57,6 +74,7 @@ async function fetchJson(path, params = {}) {
   const { data } = await axios.get(`${API_BASE}${path}`, {
     params,
     headers: getAuthHeaders(),
+    withCredentials: true,
   })
   return data
 }
@@ -64,6 +82,7 @@ async function fetchJson(path, params = {}) {
 async function postJson(path, body = {}) {
   const { data } = await axios.post(`${API_BASE}${path}`, body, {
     headers: getAuthHeaders(),
+    withCredentials: true,
   })
   return data
 }

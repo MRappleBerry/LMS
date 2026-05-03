@@ -12,7 +12,10 @@ import ModuleGenerator from './views/ModuleGenerator'
 import ReaderPage from './views/ReaderPage'
 import YearPage from './views/YearPage'
 import SubjectPage from './views/SubjectPage'
+import LoginPage from './views/LoginPage'
 import { getSubjectMeta } from './data/books/catalog'
+import { fetchSession, logoutSession } from './lib/authApi'
+import { clearPreferredUserId, setPreferredUserId } from './lib/curriculumApi'
 
 /* FAB config per view -------------------------------------------------- */
 const FAB_CONFIG = {
@@ -39,6 +42,13 @@ function addRipple(e, el) {
 }
 
 function parsePath(pathname) {
+  if (pathname === '/login') {
+    return {
+      type: 'login',
+      pathname,
+    }
+  }
+
   const yearMatch = pathname.match(/^\/year\/([^/]+)$/)
   if (yearMatch) {
     return {
@@ -114,7 +124,15 @@ export default function App() {
   const [readerNavOpen, setReaderNavOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchText, setSearchText] = useState('')
+  const [authLoading, setAuthLoading] = useState(true)
+  const [user, setUser] = useState(null)
   const fabRef = useRef(null)
+
+  function isProtectedRoute(nextRoute) {
+    if (!nextRoute) return false
+    if (nextRoute.type === 'reader' || nextRoute.type === 'subject') return true
+    return nextRoute.type === 'view' && nextRoute.view === 'dashboard'
+  }
 
   useEffect(() => {
     if (window.location.pathname === '/') {
@@ -146,8 +164,58 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPopstate)
   }, [])
 
+  useEffect(() => {
+    let mounted = true
+    fetchSession()
+      .then(data => {
+        if (!mounted) return
+        if (data?.authenticated && data?.user) {
+          setUser(data.user)
+          setPreferredUserId(data.user.id)
+        } else {
+          setUser(null)
+          clearPreferredUserId()
+        }
+      })
+      .catch(() => {
+        if (!mounted) return
+        setUser(null)
+        clearPreferredUserId()
+      })
+      .finally(() => {
+        if (mounted) setAuthLoading(false)
+      })
+
+    return () => { mounted = false }
+  }, [])
+
+  useEffect(() => {
+    if (authLoading) return
+
+    if (!user && isProtectedRoute(route) && route.type !== 'login') {
+      const returnTo = encodeURIComponent(route.pathname || '/dashboard')
+      const next = `/login?returnTo=${returnTo}`
+      window.history.replaceState({}, '', next)
+      setRoute(parsePath('/login'))
+      setViewKey(k => k + 1)
+      return
+    }
+
+    if (user && route.type === 'login') {
+      const params = new URLSearchParams(window.location.search)
+      const returnTo = params.get('returnTo')
+      const nextPath = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('/api/')
+        ? returnTo
+        : '/dashboard'
+      window.history.replaceState({}, '', nextPath)
+      setRoute(parsePath(nextPath))
+      setViewKey(k => k + 1)
+    }
+  }, [authLoading, user, route])
+
   const activeView = ['reader', 'year', 'subject', 'legacy-reader'].includes(route.type) ? 'reader' : route.view
   const subjectMeta = route.type === 'reader' ? getSubjectMeta(route.subject) : null
+  const isAuthRoute = route.type === 'login'
 
   const navigatePath = useCallback((path) => {
     if (window.location.pathname === path) return
@@ -158,6 +226,17 @@ export default function App() {
     setSearchOpen(false)
     setSearchText('')
   }, [])
+
+  async function handleLogout() {
+    try {
+      await logoutSession()
+    } catch {
+      // noop
+    }
+    setUser(null)
+    clearPreferredUserId()
+    navigatePath('/login')
+  }
 
   const handleSearch = useCallback(() => {
     setSearchOpen(true)
@@ -226,25 +305,39 @@ export default function App() {
     return items.slice(0, 12)
   }, [subjectMeta, searchText])
 
+  if (authLoading) {
+    return (
+      <div className="fixed inset-0 bg-md-bg text-md-onsurf overflow-hidden flex items-center justify-center">
+        <div className="text-sm text-md-onsurfvar">Loading session...</div>
+      </div>
+    )
+  }
+
   return (
     <div className="fixed inset-0 bg-md-bg text-md-onsurf overflow-hidden">
       {/* Top App Bar */}
-      <TopAppBar
-        activeView={activeView}
-        routeType={route.type}
-        onSearch={handleSearch}
-        subject={route.subject}
-        chapterId={route.type === 'reader' ? route.chapterId : null}
-        onReaderMenu={() => setReaderNavOpen(true)}
-      />
+      {!isAuthRoute && (
+        <TopAppBar
+          activeView={activeView}
+          routeType={route.type}
+          onSearch={handleSearch}
+          subject={route.subject}
+          chapterId={route.type === 'reader' ? route.chapterId : null}
+          onReaderMenu={() => setReaderNavOpen(true)}
+          user={user}
+          onLogout={handleLogout}
+        />
+      )}
 
       {/* Scrollable content between top bar and bottom nav */}
       <main
         className={`absolute inset-x-0 scrollbar-hide ${route.type === 'reader' ? 'overflow-hidden' : 'overflow-y-auto'}`}
-        style={{ top: 56, bottom: 64 }}
+        style={{ top: isAuthRoute ? 0 : 56, bottom: isAuthRoute ? 0 : 64 }}
       >
         <div key={viewKey} className={`animate-view-in ${route.type === 'reader' ? 'h-full min-h-0' : 'min-h-full'}`}>
-          {route.type === 'reader'
+          {route.type === 'login'
+            ? <LoginPage />
+            : route.type === 'reader'
             ? (
               <ReaderPage
                 subject={route.subject}
@@ -262,6 +355,7 @@ export default function App() {
                     subjectId={route.subject}
                     onBackYear={(year) => navigatePath(`/year/${year || 1}`)}
                     onOpenChapter={(subjectId, nextChapterId) => navigatePath(`/subject/${subjectId}/chapter/${nextChapterId}`)}
+                    onRequireAuth={() => navigatePath('/login')}
                   />
                 )
             : (views[activeView] ?? views.dashboard)
@@ -270,7 +364,7 @@ export default function App() {
       </main>
 
       {/* FAB — only for views that have one */}
-      {fab && (
+      {!isAuthRoute && fab && (
         <button
           ref={fabRef}
           onClick={handleFab}
@@ -283,18 +377,20 @@ export default function App() {
       )}
 
       {/* Bottom Navigation */}
-      <BottomNav activeView={activeView} onNavigate={navigate} />
+      {!isAuthRoute && <BottomNav activeView={activeView} onNavigate={navigate} />}
 
       {/* Drawer */}
-      <Drawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onNavigate={navigate}
-        activeView={activeView}
-      />
+      {!isAuthRoute && (
+        <Drawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          onNavigate={navigate}
+          activeView={activeView}
+        />
+      )}
 
       {/* Global Search */}
-      {searchOpen && (
+      {!isAuthRoute && searchOpen && (
         <div className="fixed inset-0 z-[70] bg-black/60 flex items-start justify-center p-4 pt-16" onClick={() => setSearchOpen(false)}>
           <div className="w-full max-w-2xl bg-md-surf border border-md-outline/60 rounded-2xl shadow-elev3 overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-3 border-b border-md-outline/50">

@@ -17,7 +17,7 @@ function formatSubject(subject) {
     .join(' ')
 }
 
-export default function TopAppBar({ activeView, routeType, onSearch, onNotif, subject, chapterId, onReaderMenu }) {
+export default function TopAppBar({ activeView, routeType, onSearch, onNotif, subject, chapterId, onReaderMenu, user, onLogout }) {
   const title = VIEW_TITLES[activeView] ?? 'LexisAI'
   const isHome = activeView === 'dashboard'
   const isReader = activeView === 'reader'
@@ -80,9 +80,31 @@ export default function TopAppBar({ activeView, routeType, onSearch, onNotif, su
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-md-primary rounded-full border-2 border-md-bg" />
         </button>
 
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold ml-0.5 cursor-pointer hover:opacity-90 transition-opacity shadow shadow-indigo-900/40">
-          AJ
-        </div>
+        {user && (
+          <div className="hidden md:flex items-center gap-2 ml-1 px-2 py-1 rounded-xl bg-md-surf2 border border-md-outline/50">
+            {user.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name || 'User'} className="w-6 h-6 rounded-full" />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-[10px] font-bold">
+                {(user.name || 'U').slice(0, 1).toUpperCase()}
+              </div>
+            )}
+            <span className="text-xs text-md-onsurf max-w-[130px] truncate">Welcome back, {user.name?.split(' ')[0] || 'Student'}</span>
+          </div>
+        )}
+
+        {user ? (
+          <button
+            onClick={onLogout}
+            className="h-8 px-3 rounded-xl text-xs border border-md-outline/50 text-md-onsurfvar hover:text-md-onsurf hover:bg-md-surf2"
+          >
+            Logout
+          </button>
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold ml-0.5 shadow shadow-indigo-900/40">
+            AJ
+          </div>
+        )}
       </div>
     </header>
   )

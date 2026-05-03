@@ -86,7 +86,7 @@ export default function ChatView() {
     setMessages(prev => [...prev, { role: 'user', text: userText }])
     setLoading(true)
     try {
-      const { data } = await axios.post(`${API_BASE}/api/chat`, { message: userText }, { headers: getAuthHeaders() })
+      const { data } = await axios.post(`${API_BASE}/api/chat`, { message: userText }, { headers: getAuthHeaders(), withCredentials: true })
       if (data?.access) setAccess(data.access)
       setMessages(prev => [...prev, { role: 'assistant', text: data.reply }])
     } catch (err) {

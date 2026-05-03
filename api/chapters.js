@@ -1,5 +1,6 @@
 const { getChapters } = require('./_curriculumData')
 const { getUserId, getSubjectEntitlement, getChapterEntitlement, getWeeklyAccessStatus } = require('./_subscriptions')
+const { getSessionFromRequest } = require('./_auth')
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -10,6 +11,11 @@ module.exports = async (req, res) => {
 
   const subject = req.query?.subject
   if (!subject) return res.status(400).json({ error: 'subject is required.' })
+
+  const session = getSessionFromRequest(req)
+  if (!session?.userId) {
+    return res.status(401).json({ error: 'Authentication required.', redirectTo: '/login' })
+  }
 
   const data = getChapters(subject)
   if (!data) return res.status(404).json({ error: 'Subject not found.' })

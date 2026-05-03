@@ -79,8 +79,12 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
           chapters: data.chapters,
         })
       })
-      .catch(() => {
+      .catch((err) => {
         if (!mounted) return
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          onNavigatePath('/login')
+          return
+        }
         if (fallbackMeta) setSubjectMeta(fallbackMeta)
       })
     return () => { mounted = false }
@@ -104,6 +108,10 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
         setChapter(data)
       } catch (err) {
         if (!mounted) return
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          onNavigatePath('/login')
+          return
+        }
         if (axios.isAxiosError(err) && err.response?.status === 402) {
           const target = err.response?.data?.redirectTo || `/subject/${subject}`
           onNavigatePath(target)

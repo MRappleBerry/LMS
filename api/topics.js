@@ -1,6 +1,7 @@
 const { getTopic } = require('./_curriculumData')
 const { requireTopicAccess } = require('./_access')
 const { getWeeklyAccessStatus } = require('./_subscriptions')
+const { getSessionFromRequest } = require('./_auth')
 
 function sanitizeTopicForPreview(topic) {
   const sections = (topic.sections || []).map(section => {
@@ -26,6 +27,11 @@ module.exports = async (req, res) => {
   const subject = req.query?.subject
   const chapter = req.query?.chapter
   if (!subject || !chapter) return res.status(400).json({ error: 'subject and chapter are required.' })
+
+  const session = getSessionFromRequest(req)
+  if (!session?.userId) {
+    return res.status(401).json({ error: 'Authentication required.', redirectTo: '/login' })
+  }
 
   const access = requireTopicAccess(req, res, subject, chapter)
   if (!access.ok) return

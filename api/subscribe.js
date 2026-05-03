@@ -1,5 +1,6 @@
 const { getSubjectSummary } = require('./_curriculumData')
 const { getUserId, subscribeToSubject, PREMIUM_SUBSCRIPTION_ID, getWeeklyAccessStatus } = require('./_subscriptions')
+const { getSessionFromRequest } = require('./_auth')
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -10,6 +11,11 @@ module.exports = async (req, res) => {
 
   const subjectId = req.body?.subjectId
   if (!subjectId) return res.status(400).json({ error: 'subjectId is required.' })
+
+  const session = getSessionFromRequest(req)
+  if (!session?.userId) {
+    return res.status(401).json({ error: 'Authentication required.', redirectTo: '/login' })
+  }
 
   const subject = getSubjectSummary(subjectId)
   if (!subject) return res.status(404).json({ error: 'Subject not found.' })

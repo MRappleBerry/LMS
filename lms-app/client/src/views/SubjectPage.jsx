@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import axios from 'axios'
 import { fetchSubjectPage, subscribeToSubject } from '../lib/curriculumApi'
 
 const READER_STATE_KEY = 'lexisai.reader.state.v1'
@@ -24,7 +25,7 @@ function getProgress(subjectId, chapters) {
   }
 }
 
-export default function SubjectPage({ subjectId, onOpenChapter, onBackYear }) {
+export default function SubjectPage({ subjectId, onOpenChapter, onBackYear, onRequireAuth }) {
   const [payload, setPayload] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -39,8 +40,13 @@ export default function SubjectPage({ subjectId, onOpenChapter, onBackYear }) {
       .then(data => {
         if (mounted) setPayload(data)
       })
-      .catch(() => {
-        if (mounted) setError('Unable to load this subject right now.')
+      .catch((err) => {
+        if (!mounted) return
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          onRequireAuth?.()
+          return
+        }
+        setError('Unable to load this subject right now.')
       })
       .finally(() => {
         if (mounted) setLoading(false)
