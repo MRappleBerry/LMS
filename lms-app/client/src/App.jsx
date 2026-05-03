@@ -269,7 +269,7 @@ export default function App() {
     study:     <StudyMode />,
     notes:     <Notes />,
     modules:   <ModuleGenerator />,
-    settings:  <Settings />,
+    settings:  <Settings user={user} onLogout={handleLogout} />,
   }), [navigate])
 
   const quickRoutes = useMemo(() => ([
