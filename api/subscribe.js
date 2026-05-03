@@ -1,5 +1,5 @@
 const { getSubjectSummary } = require('./_curriculumData')
-const { getUserId, subscribeToSubject } = require('./_subscriptions')
+const { getUserId, subscribeToSubject, PREMIUM_SUBSCRIPTION_ID, getWeeklyAccessStatus } = require('./_subscriptions')
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -22,10 +22,12 @@ module.exports = async (req, res) => {
   return res.json({
     success: true,
     paymentStatus: 'paid',
+    tier: 'premium',
     userSubscription: {
       user_id: userId,
-      subject_id: String(subjectId),
+      subject_id: PREMIUM_SUBSCRIPTION_ID,
       status: 'active',
     },
+    access: getWeeklyAccessStatus(userId),
   })
 }

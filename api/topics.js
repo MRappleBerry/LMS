@@ -1,5 +1,20 @@
 const { getTopic } = require('./_curriculumData')
-const { requireSubjectSubscription } = require('./_access')
+const { requireTopicAccess } = require('./_access')
+const { getWeeklyAccessStatus } = require('./_subscriptions')
+
+function sanitizeTopicForPreview(topic) {
+  const sections = (topic.sections || []).map(section => {
+    const clean = { ...section }
+    delete clean.barExam
+    delete clean.quiz
+    return clean
+  })
+
+  return {
+    ...topic,
+    sections,
+  }
+}
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -12,11 +27,24 @@ module.exports = async (req, res) => {
   const chapter = req.query?.chapter
   if (!subject || !chapter) return res.status(400).json({ error: 'subject and chapter are required.' })
 
-  const access = requireSubjectSubscription(req, res, subject)
+  const access = requireTopicAccess(req, res, subject, chapter)
   if (!access.ok) return
 
   const topic = getTopic(subject, chapter)
   if (!topic) return res.status(404).json({ error: 'Topic not found.' })
 
-  return res.json({ ...topic, isSubscribed: true })
+  const isPremium = access.entitlement?.isPremium
+  const payload = isPremium ? topic : sanitizeTopicForPreview(topic)
+
+  return res.json({
+    ...payload,
+    isSubscribed: isPremium,
+    access: getWeeklyAccessStatus(access.userId),
+    capabilities: {
+      canUseQuiz: Boolean(isPremium),
+      canUseBarExam: Boolean(isPremium),
+      canUseAI: Boolean(isPremium || (access.entitlement?.aiPromptsRemaining > 0)),
+    },
+    previewMode: !isPremium,
+  })
 }

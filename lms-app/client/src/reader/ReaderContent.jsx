@@ -42,6 +42,7 @@ function ReaderContentBase({
   onCaseExplain,
   onRequestPractice,
   onQuizResult,
+  featureFlags,
 }) {
   const { toggleBookmark, isBookmarked, getHighlights } = useReaderState()
   const containerRef = useRef(null)
@@ -97,16 +98,20 @@ function ReaderContentBase({
 
   function withBarMeta(sec) {
     const freq = (sec.barFrequency || sec.barExam?.frequency || 'medium').toLowerCase()
+    const canUseBarExam = featureFlags?.canUseBarExam !== false
+    const canUseQuiz = featureFlags?.canUseQuiz !== false
     return {
       ...sec,
       yearLevel: sec.yearLevel || subjectYearLevel || '1st Year',
       difficulty: (sec.difficulty || 'medium').toLowerCase(),
       barFrequency: freq,
-      barExam: sec.barExam || {
-        frequency: 'Medium',
-        commonTraps: ['Confusing requisites with effects', 'Skipping key exceptions'],
-        sampleAnswer: 'State the doctrine, enumerate requisites, apply to facts, and conclude briefly.',
-      },
+      barExam: canUseBarExam
+        ? (sec.barExam || {
+            frequency: 'Medium',
+            commonTraps: ['Confusing requisites with effects', 'Skipping key exceptions'],
+            sampleAnswer: 'State the doctrine, enumerate requisites, apply to facts, and conclude briefly.',
+          })
+        : null,
       cases: sec.cases || [
         {
           name: 'Landmark Doctrine Case',
@@ -114,12 +119,14 @@ function ReaderContentBase({
           facts: 'Placeholder facts for case-learning mode.',
         },
       ],
-      quiz: sec.quiz || {
-        question: `Which statement best captures the core doctrine in "${sec.heading}"?`,
-        options: ['A principle with no exceptions', 'A rule requiring analysis of requisites and exceptions', 'A purely procedural guideline', 'A doctrine irrelevant to bar exams'],
-        answerIndex: 1,
-        explanation: 'Bar exam answers are strongest when you identify requisites and exceptions before applying facts.',
-      },
+      quiz: canUseQuiz
+        ? (sec.quiz || {
+            question: `Which statement best captures the core doctrine in "${sec.heading}"?`,
+            options: ['A principle with no exceptions', 'A rule requiring analysis of requisites and exceptions', 'A purely procedural guideline', 'A doctrine irrelevant to bar exams'],
+            answerIndex: 1,
+            explanation: 'Bar exam answers are strongest when you identify requisites and exceptions before applying facts.',
+          })
+        : null,
     }
   }
 
@@ -204,7 +211,7 @@ function ReaderContentBase({
                     {renderWithHighlights(sec.content, highlights)}
                   </div>
 
-                  {barExamMode && (
+                  {barExamMode && sec.barExam && (
                     <div className="mt-4 bg-md-surf2 border border-md-outline/50 rounded-2xl p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="text-xs uppercase tracking-widest text-md-onsurfvar">Bar Exam Mode</div>
@@ -245,44 +252,50 @@ function ReaderContentBase({
                     ))}
                   </div>
 
-                  <div className="mt-4 bg-md-surf2 border border-md-outline/50 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs uppercase tracking-widest text-md-onsurfvar">Section Quiz</div>
-                      <button
-                        onClick={() => onRequestPractice?.(sec)}
-                        className="text-xs px-2.5 py-1 rounded-lg bg-md-primarycon text-md-onprimarycon hover:bg-md-primarycon/80"
-                      >
-                        AI Practice Question
-                      </button>
-                    </div>
-                    <p className="text-sm text-md-onsurf">{sec.quiz.question}</p>
-                    <div className="space-y-2">
-                      {sec.quiz.options.map((opt, i) => (
+                  {sec.quiz ? (
+                    <div className="mt-4 bg-md-surf2 border border-md-outline/50 rounded-2xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs uppercase tracking-widest text-md-onsurfvar">Section Quiz</div>
                         <button
-                          key={i}
-                          onClick={() => setQuizChoice(prev => ({ ...prev, [sectionKey]: i }))}
-                          className={`w-full text-left px-3 py-2 rounded-xl border text-xs transition-colors ${
-                            selected === i ? 'bg-md-primarycon text-md-onprimarycon border-md-primary/50' : 'bg-md-surf3 text-md-onsurfvar border-md-outline/40 hover:text-md-onsurf'
-                          }`}
+                          onClick={() => onRequestPractice?.(sec)}
+                          className="text-xs px-2.5 py-1 rounded-lg bg-md-primarycon text-md-onprimarycon hover:bg-md-primarycon/80"
                         >
-                          {opt}
+                          AI Practice Question
                         </button>
-                      ))}
+                      </div>
+                      <p className="text-sm text-md-onsurf">{sec.quiz.question}</p>
+                      <div className="space-y-2">
+                        {sec.quiz.options.map((opt, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setQuizChoice(prev => ({ ...prev, [sectionKey]: i }))}
+                            className={`w-full text-left px-3 py-2 rounded-xl border text-xs transition-colors ${
+                              selected === i ? 'bg-md-primarycon text-md-onprimarycon border-md-primary/50' : 'bg-md-surf3 text-md-onsurfvar border-md-outline/40 hover:text-md-onsurf'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => submitQuiz(sectionKey, sec.quiz)}
+                          className="px-3 py-1.5 text-xs rounded-lg bg-md-primarydim text-white hover:bg-md-primary"
+                        >
+                          Submit Quiz
+                        </button>
+                        {answerShown && (
+                          <span className="text-xs text-md-onsurfvar">
+                            {selected === sec.quiz.answerIndex ? 'Correct.' : 'Not quite.'} {sec.quiz.explanation}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => submitQuiz(sectionKey, sec.quiz)}
-                        className="px-3 py-1.5 text-xs rounded-lg bg-md-primarydim text-white hover:bg-md-primary"
-                      >
-                        Submit Quiz
-                      </button>
-                      {answerShown && (
-                        <span className="text-xs text-md-onsurfvar">
-                          {selected === sec.quiz.answerIndex ? 'Correct.' : 'Not quite.'} {sec.quiz.explanation}
-                        </span>
-                      )}
+                  ) : (
+                    <div className="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 text-xs text-amber-200">
+                      Quiz mode is locked in Free Preview. Upgrade to Premium to unlock section quizzes and bar simulation.
                     </div>
-                  </div>
+                  )}
                 </section>
               )
             })}

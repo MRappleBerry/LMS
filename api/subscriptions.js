@@ -1,4 +1,4 @@
-const { getUserId, listUserSubscriptions } = require('./_subscriptions')
+const { getUserId, listUserSubscriptions, getWeeklyAccessStatus } = require('./_subscriptions')
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -11,5 +11,6 @@ module.exports = async (req, res) => {
   return res.json({
     userId,
     subjectIds: listUserSubscriptions(userId),
+    access: getWeeklyAccessStatus(userId),
   })
 }

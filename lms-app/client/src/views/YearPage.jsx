@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { fetchSubjectsByYear, fetchYears } from '../lib/curriculumApi'
+import { fetchSubjectsByYearWithAccess, fetchYears } from '../lib/curriculumApi'
 
 export default function YearPage({ yearId, onOpenSubject }) {
   const [years, setYears] = useState([])
   const [subjects, setSubjects] = useState([])
+  const [access, setAccess] = useState(null)
   const [loading, setLoading] = useState(false)
 
   const activeYear = useMemo(() => {
@@ -25,13 +26,17 @@ export default function YearPage({ yearId, onOpenSubject }) {
   useEffect(() => {
     let mounted = true
     setLoading(true)
-    fetchSubjectsByYear(activeYear || null)
+    fetchSubjectsByYearWithAccess(activeYear || null)
       .then(data => {
         if (!mounted) return
-        setSubjects(data)
+        setSubjects(data?.subjects || [])
+        setAccess(data?.access || null)
       })
       .catch(() => {
-        if (mounted) setSubjects([])
+        if (mounted) {
+          setSubjects([])
+          setAccess(null)
+        }
       })
       .finally(() => {
         if (mounted) setLoading(false)
@@ -64,6 +69,14 @@ export default function YearPage({ yearId, onOpenSubject }) {
               </a>
             ))}
           </div>
+
+          {access && (
+            <div className="mt-4 rounded-xl border border-md-outline/40 bg-md-surf2 px-3 py-2 text-xs text-md-onsurfvar">
+              {access.tier === 'premium'
+                ? 'Premium active: all subjects unlocked, unlimited AI usage.'
+                : `Weekly free preview: ${access.weeklyPreviewUsedCount}/${access.weeklyPreviewLimit} subject used this week • Resets in ${access.resetsInDays} day(s)`}
+            </div>
+          )}
         </div>
 
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

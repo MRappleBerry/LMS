@@ -150,20 +150,22 @@ function ChapterSidebarBase({
         {chapters.map(ch => {
           const isActiveChapter = ch.id === chapterId
           const isOpen = openMap[ch.id]
+          const locked = Boolean(ch.isLocked)
           return (
             <div key={ch.id} className="mb-1">
               <button
-                onClick={() => { toggleChapter(ch.id); onNavigateChapter(ch.id) }}
+                disabled={locked}
+                onClick={() => { if (!locked) { toggleChapter(ch.id); onNavigateChapter(ch.id) } }}
                 className={`ripple-root w-full flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors ${
                   isActiveChapter ? 'bg-md-primarycon text-md-onprimarycon' : 'text-md-onsurf hover:bg-md-surf3'
                 }`}
               >
                 <span className="text-xs font-semibold opacity-70">Ch {ch.id}</span>
                 <span className="text-sm font-medium truncate">{ch.title}</span>
-                <span className="ml-auto text-xs opacity-60">{isOpen ? '▾' : '▸'}</span>
+                <span className="ml-auto text-xs opacity-60">{locked ? '🔒' : (isOpen ? '▾' : '▸')}</span>
               </button>
 
-              {isOpen && (
+              {isOpen && !locked && (
                 <div className="mt-1 space-y-0.5 pl-2">
                   {(ch.sections || []).map(sec => {
                     const sectionKey = `${subjectMeta.subject}:${ch.id}:${sec.id}`

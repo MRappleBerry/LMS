@@ -5,7 +5,7 @@ const CACHE_KEY = 'lexisai.curriculum.cache.v2'
 const USER_KEY = 'lexisai.user.id'
 const mem = new Map()
 
-function getUserId() {
+export function getUserId() {
   try {
     const existing = localStorage.getItem(USER_KEY)
     if (existing) return existing
@@ -14,6 +14,12 @@ function getUserId() {
     return generated
   } catch {
     return 'demo-user'
+  }
+}
+
+export function getAuthHeaders() {
+  return {
+    'x-user-id': getUserId(),
   }
 }
 
@@ -50,18 +56,14 @@ function setCached(key, value) {
 async function fetchJson(path, params = {}) {
   const { data } = await axios.get(`${API_BASE}${path}`, {
     params,
-    headers: {
-      'x-user-id': getUserId(),
-    },
+    headers: getAuthHeaders(),
   })
   return data
 }
 
 async function postJson(path, body = {}) {
   const { data } = await axios.post(`${API_BASE}${path}`, body, {
-    headers: {
-      'x-user-id': getUserId(),
-    },
+    headers: getAuthHeaders(),
   })
   return data
 }
@@ -82,6 +84,11 @@ export async function fetchSubjectsByYear(year) {
   const data = await fetchJson('/api/subjects', year ? { year } : {})
   setCached(key, data.subjects)
   return data.subjects
+}
+
+export async function fetchSubjectsByYearWithAccess(year) {
+  const data = await fetchJson('/api/subjects', year ? { year } : {})
+  return data
 }
 
 export async function fetchChaptersBySubject(subject) {
@@ -116,13 +123,13 @@ export async function subscribeToSubject(subjectId) {
 
   // Invalidate subject/subject-list/chapter caches so UI unlocks instantly.
   for (const key of [...mem.keys()]) {
-    if (key.startsWith('subjects:') || key.startsWith('chapters:') || key.startsWith('subject:')) {
+    if (key.startsWith('subjects:') || key.startsWith('chapters:') || key.startsWith('subject:') || key.startsWith('topic:')) {
       mem.delete(key)
     }
   }
   const local = readCache()
   for (const key of Object.keys(local)) {
-    if (key.startsWith('subjects:') || key.startsWith('chapters:') || key.startsWith('subject:')) {
+    if (key.startsWith('subjects:') || key.startsWith('chapters:') || key.startsWith('subject:') || key.startsWith('topic:')) {
       delete local[key]
     }
   }

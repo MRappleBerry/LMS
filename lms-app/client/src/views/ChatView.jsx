@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
+import { getAuthHeaders } from '../lib/curriculumApi'
 
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
@@ -70,6 +71,7 @@ export default function ChatView() {
   const [messages, setMessages] = useState(INITIAL_MESSAGES)
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
+  const [access, setAccess]     = useState(null)
   const bottomRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -84,10 +86,12 @@ export default function ChatView() {
     setMessages(prev => [...prev, { role: 'user', text: userText }])
     setLoading(true)
     try {
-      const { data } = await axios.post(`${API_BASE}/api/chat`, { message: userText })
+      const { data } = await axios.post(`${API_BASE}/api/chat`, { message: userText }, { headers: getAuthHeaders() })
+      if (data?.access) setAccess(data.access)
       setMessages(prev => [...prev, { role: 'assistant', text: data.reply }])
     } catch (err) {
       const msg = err.response?.data?.error || 'Something went wrong. Please try again.'
+      if (err.response?.data?.access) setAccess(err.response.data.access)
       setMessages(prev => [...prev, { role: 'assistant', text: `⚠️ ${msg}` }])
     } finally {
       setLoading(false)
@@ -149,6 +153,13 @@ export default function ChatView() {
           </button>
         </div>
         <p className="text-[10px] text-md-onsurfvar text-center mt-1.5">For educational purposes only — not legal advice</p>
+        {access && (
+          <p className="text-[10px] text-md-onsurfvar text-center mt-1">
+            {access.tier === 'premium'
+              ? 'Premium AI: unlimited prompts'
+              : `Free AI usage: ${access.aiPromptsUsed}/${access.aiPromptLimit} prompts used this week • Resets in ${access.resetsInDays} day(s)`}
+          </p>
+        )}
       </div>
     </div>
   )

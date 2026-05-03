@@ -1,5 +1,5 @@
 const { getSubjectSummary, getChapters } = require('./_curriculumData')
-const { getUserId, isSubscribed } = require('./_subscriptions')
+const { getUserId, getSubjectEntitlement, getChapterEntitlement, getWeeklyAccessStatus } = require('./_subscriptions')
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -15,20 +15,27 @@ module.exports = async (req, res) => {
   if (!subject) return res.status(404).json({ error: 'Subject not found.' })
 
   const userId = getUserId(req)
-  const subscribed = isSubscribed(userId, subjectId)
+  const subjectAccess = getSubjectEntitlement(userId, subjectId, { claimPreview: true })
   const chapterData = getChapters(subjectId)
 
   const chapters = (chapterData?.chapters || []).map(ch => ({
     ...ch,
-    isLocked: !subscribed,
+    isLocked: getChapterEntitlement(userId, subjectId, ch.id, { claimPreview: true }).isLocked,
     previewSection: ch.sections?.[0] || null,
   }))
 
   return res.json({
     subject: {
       ...subject,
-      isSubscribed: subscribed,
+      isSubscribed: subjectAccess.isPremium,
+      isPreviewSubject: subjectAccess.isPreviewSubject,
     },
     chapters,
+    access: getWeeklyAccessStatus(userId),
+    capabilities: {
+      canUseQuiz: subjectAccess.isPremium,
+      canUseBarExam: subjectAccess.isPremium,
+      canUseAI: subjectAccess.isPremium || subjectAccess.aiPromptsRemaining > 0,
+    },
   })
 }

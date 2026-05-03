@@ -20,6 +20,8 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
   const [progress, setProgress] = useState(0)
   const [barExamMode, setBarExamMode] = useState(true)
   const [yearFilter, setYearFilter] = useState('All')
+  const [capabilities, setCapabilities] = useState({ canUseQuiz: true, canUseBarExam: true, canUseAI: true })
+  const [access, setAccess] = useState(null)
 
   const { addHighlight, markSectionRead, recordQuizResult, getLearningInsights, isSectionRead } = useReaderState()
 
@@ -68,6 +70,8 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
     fetchChaptersBySubject(subject)
       .then(data => {
         if (!mounted) return
+        setCapabilities(data?.capabilities || { canUseQuiz: true, canUseBarExam: true, canUseAI: true })
+        setAccess(data?.access || null)
         setSubjectMeta({
           subject: data.subject,
           title: data.title,
@@ -92,6 +96,11 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
       try {
         const data = await fetchTopic(subject, chapterId)
         if (!mounted) return
+        setCapabilities(data?.capabilities || { canUseQuiz: true, canUseBarExam: true, canUseAI: true })
+        setAccess(data?.access || null)
+        if (data?.capabilities?.canUseBarExam === false) {
+          setBarExamMode(false)
+        }
         setChapter(data)
       } catch (err) {
         if (!mounted) return
@@ -172,6 +181,10 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
 
   function explainSelection(text, sectionId) {
     if (!text?.trim()) return
+    if (!capabilities.canUseAI) {
+      setError('Free AI weekly limit reached. Upgrade to Premium for unlimited AI usage.')
+      return
+    }
     setRequest({
       context: text,
       sectionId,
@@ -193,6 +206,10 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
   function quickExplain(instruction) {
     const sourceSection = chapter?.sections?.find(s => s.id === activeSectionId)
     if (!sourceSection) return
+    if (!capabilities.canUseAI) {
+      setError('Free AI weekly limit reached. Upgrade to Premium for unlimited AI usage.')
+      return
+    }
     setRequest({
       context: sourceSection.content,
       sectionId: sourceSection.id,
@@ -204,6 +221,10 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
   }
 
   function handleCaseExplain(cs, section) {
+    if (!capabilities.canUseAI) {
+      setError('Free AI weekly limit reached. Upgrade to Premium for unlimited AI usage.')
+      return
+    }
     const context = `Case: ${cs.name}\nDoctrine: ${cs.doctrine || ''}\nFacts: ${cs.facts || ''}\nSection: ${section.heading}`
     setRequest({
       context,
@@ -214,6 +235,10 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
   }
 
   function handlePractice(sec) {
+    if (!capabilities.canUseAI) {
+      setError('Free AI weekly limit reached. Upgrade to Premium for unlimited AI usage.')
+      return
+    }
     setRequest({
       context: sec.content,
       sectionId: sec.id,
@@ -300,13 +325,26 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
                 Study Mode
               </button>
               <button
-                onClick={() => setBarExamMode(true)}
-                className={`px-2.5 py-1 rounded-lg ${barExamMode ? 'bg-md-primarycon text-md-onprimarycon' : 'text-md-onsurfvar'}`}
+                disabled={!capabilities.canUseBarExam}
+                onClick={() => capabilities.canUseBarExam && setBarExamMode(true)}
+                className={`px-2.5 py-1 rounded-lg ${barExamMode ? 'bg-md-primarycon text-md-onprimarycon' : 'text-md-onsurfvar'} ${!capabilities.canUseBarExam ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 Bar Mode
               </button>
             </div>
           </div>
+          {!capabilities.canUseBarExam && (
+            <div className="shrink-0 px-4 py-2 text-[11px] text-amber-300 bg-amber-500/10 border-b border-amber-500/30">
+              Bar Exam mode and quiz mode are Premium features. Upgrade to unlock.
+            </div>
+          )}
+          {access && (
+            <div className="shrink-0 px-4 py-2 text-[11px] text-md-onsurfvar bg-md-surf2 border-b border-md-outline/40">
+              {access.tier === 'premium'
+                ? 'Premium active: full chapters and unlimited AI usage.'
+                : `Free preview: ${access.weeklyPreviewUsedCount}/${access.weeklyPreviewLimit} subject used • AI ${access.aiPromptsUsed}/${access.aiPromptLimit} used • Resets in ${access.resetsInDays} day(s)`}
+            </div>
+          )}
           <div className="flex-1 min-h-0">
             <ReaderContent
               chapter={chapter}
@@ -321,6 +359,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
               onCaseExplain={handleCaseExplain}
               onRequestPractice={handlePractice}
               onQuizResult={recordQuizResult}
+              featureFlags={capabilities}
             />
           </div>
         </div>
@@ -333,6 +372,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
         request={request}
         onQuickExplain={quickExplain}
         learningInsights={learningInsights}
+        canUseAI={capabilities.canUseAI}
       />
 
       {selection?.text && (

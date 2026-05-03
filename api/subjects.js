@@ -1,5 +1,5 @@
 const { getSubjects } = require('./_curriculumData')
-const { getUserId, isSubscribed } = require('./_subscriptions')
+const { getUserId, getSubjectEntitlement, getWeeklyAccessStatus } = require('./_subscriptions')
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -10,9 +10,17 @@ module.exports = async (req, res) => {
 
   const year = req.query?.year
   const userId = getUserId(req)
-  const subjects = getSubjects(year).map(subject => ({
-    ...subject,
-    isSubscribed: isSubscribed(userId, subject.id),
-  }))
-  return res.json({ subjects })
+  const subjects = getSubjects(year).map(subject => {
+    const access = getSubjectEntitlement(userId, subject.id)
+    return {
+      ...subject,
+      isSubscribed: access.isPremium,
+      isPreviewSubject: access.isPreviewSubject,
+      isLocked: !access.isPremium && access.weeklyPreviewUsed && !access.isPreviewSubject,
+    }
+  })
+  return res.json({
+    subjects,
+    access: getWeeklyAccessStatus(userId),
+  })
 }

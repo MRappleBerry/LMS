@@ -1,4 +1,5 @@
 const OpenAI = require('openai')
+const { getUserId, consumeAiPrompt } = require('./_subscriptions')
 
 const SYSTEM_PROMPT = `You are LexisAI, an expert legal education assistant for law students.
 Always explain legal concepts accurately with plain-language clarity.
@@ -7,7 +8,7 @@ Keep answers educational and concise. Include doctrine, bar relevance, and one m
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id')
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' })
 
@@ -34,10 +35,20 @@ module.exports = async (req, res) => {
     '- End with one memory tip',
   ].join('\n')
 
+  const userId = getUserId(req)
+  const aiUsage = consumeAiPrompt(userId)
+  if (!aiUsage.ok) {
+    return res.status(402).json({
+      error: `Free AI prompt limit reached (${aiUsage.aiPromptLimit}/week). Upgrade to Premium for unlimited AI usage.`,
+      access: aiUsage,
+    })
+  }
+
   if (!process.env.OPENAI_API_KEY) {
     return res.json({
       reply: `Plain Explanation:\n${context.trim().slice(0, 300)}\n\nBar Relevance: Focus on elements, requisites, and exceptions likely tested in issue-spotting questions.\nMemory Tip: Build a 3-part recall cue: doctrine, requisites, exception.\n\n*[Mock explain response — add OPENAI_API_KEY to Vercel environment variables for full AI mode]*`,
       mode: 'mock',
+      access: aiUsage,
     })
   }
 
@@ -54,7 +65,7 @@ module.exports = async (req, res) => {
     })
 
     const reply = completion.choices[0]?.message?.content ?? 'No response generated.'
-    return res.json({ reply, mode: 'openai' })
+    return res.json({ reply, mode: 'openai', access: aiUsage })
   } catch {
     return res.status(500).json({ error: 'Failed to generate explanation.' })
   }

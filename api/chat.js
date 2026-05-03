@@ -1,4 +1,5 @@
 const OpenAI = require('openai')
+const { getUserId, consumeAiPrompt } = require('./_subscriptions')
 
 const SYSTEM_PROMPT = `You are LexisAI, an expert legal education assistant for law students.
 Your role is to:
@@ -28,7 +29,7 @@ module.exports = async (req, res) => {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-user-id')
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' })
 
@@ -41,6 +42,15 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Message too long (max 2000 characters).' })
   }
 
+  const userId = getUserId(req)
+  const aiUsage = consumeAiPrompt(userId)
+  if (!aiUsage.ok) {
+    return res.status(402).json({
+      error: `Free AI prompt limit reached (${aiUsage.aiPromptLimit}/week). Upgrade to Premium for unlimited AI usage.`,
+      access: aiUsage,
+    })
+  }
+
   // Mock mode (no API key)
   if (!process.env.OPENAI_API_KEY) {
     const reply = MOCK_RESPONSES[mockIdx % MOCK_RESPONSES.length]
@@ -48,6 +58,7 @@ module.exports = async (req, res) => {
     return res.json({
       reply: `${reply}\n\n*[Mock response — add your OPENAI_API_KEY to Vercel environment variables to enable real AI]*`,
       mode: 'mock',
+      access: aiUsage,
     })
   }
 
@@ -64,7 +75,7 @@ module.exports = async (req, res) => {
     })
 
     const reply = completion.choices[0]?.message?.content ?? 'No response generated.'
-    return res.json({ reply, mode: 'openai' })
+    return res.json({ reply, mode: 'openai', access: aiUsage })
   } catch (err) {
     const status = err.status ?? 500
     const errMsg =

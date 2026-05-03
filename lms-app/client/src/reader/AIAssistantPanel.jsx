@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useState } from 'react'
 import { explainWithAi } from '../lib/readerAi'
 import { useReaderState } from './ReaderStateContext'
 
-function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickExplain, learningInsights }) {
+function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickExplain, learningInsights, canUseAI = true }) {
   const { getSectionNote, setSectionNote } = useReaderState()
   const [messages, setMessages] = useState([
     {
@@ -85,18 +85,23 @@ function AIAssistantPanelBase({ subject, chapterId, sectionId, request, onQuickE
 
       <div className="p-3 border-t border-md-outline/50 space-y-2 shrink-0">
         <div className="text-[11px] font-semibold text-md-onsurfvar uppercase tracking-widest">Quick Actions</div>
+        {!canUseAI && (
+          <div className="text-[11px] text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-xl px-2.5 py-2">
+            Weekly free AI limit reached. Upgrade to Premium for unlimited AI usage.
+          </div>
+        )}
         <div className="grid grid-cols-1 gap-2">
-          <button onClick={() => onQuickExplain('Summarize the key doctrine in this section.')} className="ripple-root text-left px-3 py-2 rounded-xl text-xs bg-md-surf3 text-md-onsurfvar hover:text-md-onsurf border border-md-outline/50">
+          <button disabled={!canUseAI} onClick={() => onQuickExplain('Summarize the key doctrine in this section.')} className={`ripple-root text-left px-3 py-2 rounded-xl text-xs bg-md-surf3 border border-md-outline/50 ${canUseAI ? 'text-md-onsurfvar hover:text-md-onsurf' : 'opacity-50 cursor-not-allowed text-md-onsurfvar'}`}>
             Summarize key doctrine
           </button>
-          <button onClick={() => onQuickExplain('Convert this section into bar exam issue-spotting pointers.')} className="ripple-root text-left px-3 py-2 rounded-xl text-xs bg-md-surf3 text-md-onsurfvar hover:text-md-onsurf border border-md-outline/50">
+          <button disabled={!canUseAI} onClick={() => onQuickExplain('Convert this section into bar exam issue-spotting pointers.')} className={`ripple-root text-left px-3 py-2 rounded-xl text-xs bg-md-surf3 border border-md-outline/50 ${canUseAI ? 'text-md-onsurfvar hover:text-md-onsurf' : 'opacity-50 cursor-not-allowed text-md-onsurfvar'}`}>
             Bar exam issue spotting
           </button>
-          <button onClick={() => onQuickExplain('Generate one new bar-style MCQ and one essay question from this section with concise answer keys.')} className="ripple-root text-left px-3 py-2 rounded-xl text-xs bg-md-surf3 text-md-onsurfvar hover:text-md-onsurf border border-md-outline/50">
+          <button disabled={!canUseAI} onClick={() => onQuickExplain('Generate one new bar-style MCQ and one essay question from this section with concise answer keys.')} className={`ripple-root text-left px-3 py-2 rounded-xl text-xs bg-md-surf3 border border-md-outline/50 ${canUseAI ? 'text-md-onsurfvar hover:text-md-onsurf' : 'opacity-50 cursor-not-allowed text-md-onsurfvar'}`}>
             Generate practice questions
           </button>
           {learningInsights?.weakAreas?.length > 0 && (
-            <button onClick={() => onQuickExplain(`Coach me on this weak area: ${learningInsights.weakAreas[0].title}. Explain mistakes and how to avoid them in bar answers.`)} className="ripple-root text-left px-3 py-2 rounded-xl text-xs bg-red-900/20 text-red-200 hover:text-red-100 border border-red-900/40">
+            <button disabled={!canUseAI} onClick={() => onQuickExplain(`Coach me on this weak area: ${learningInsights.weakAreas[0].title}. Explain mistakes and how to avoid them in bar answers.`)} className={`ripple-root text-left px-3 py-2 rounded-xl text-xs border border-red-900/40 ${canUseAI ? 'bg-red-900/20 text-red-200 hover:text-red-100' : 'opacity-50 cursor-not-allowed bg-red-900/10 text-red-200'}`}>
               Coach weak area: {learningInsights.weakAreas[0].title}
             </button>
           )}

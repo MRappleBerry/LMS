@@ -50,6 +50,7 @@ export default function SubjectPage({ subjectId, onOpenChapter, onBackYear }) {
 
   const subject = payload?.subject
   const chapters = payload?.chapters || []
+  const access = payload?.access
   const isSubscribed = Boolean(subject?.isSubscribed)
   const progress = useMemo(() => getProgress(subjectId, chapters), [subjectId, chapters, isSubscribed])
 
@@ -105,6 +106,14 @@ export default function SubjectPage({ subjectId, onOpenChapter, onBackYear }) {
               </div>
             </div>
 
+            {access && (
+              <div className="mt-4 rounded-xl border border-md-outline/40 bg-md-surf2 px-3 py-2 text-xs text-md-onsurfvar">
+                {access.tier === 'premium'
+                  ? 'Premium active: all chapters, quiz mode, bar simulation, and unlimited AI unlocked.'
+                  : `Free tier: preview of 1 subject/week, first ${access.previewChapterLimit} chapter(s), AI ${access.aiPromptsUsed}/${access.aiPromptLimit} used • Resets in ${access.resetsInDays} day(s)`}
+              </div>
+            )}
+
             <div className="mt-4 h-2 rounded-full bg-md-surf2 overflow-hidden border border-md-outline/40">
               <div className="h-full bg-gradient-to-r from-emerald-400 to-cyan-300" style={{ width: `${progress}%` }} />
             </div>
@@ -118,7 +127,7 @@ export default function SubjectPage({ subjectId, onOpenChapter, onBackYear }) {
         {!loading && subject && (
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {chapters.map(chapter => {
-              const locked = !isSubscribed
+              const locked = Boolean(chapter.isLocked)
               return (
                 <article key={chapter.id} className="relative rounded-2xl border border-md-outline/50 bg-md-surf/90 p-5 overflow-hidden">
                   <div className={locked ? 'blur-[2px] select-none pointer-events-none' : ''}>
@@ -158,14 +167,14 @@ export default function SubjectPage({ subjectId, onOpenChapter, onBackYear }) {
         <div className="fixed z-40 bottom-20 left-1/2 -translate-x-1/2 w-[min(92vw,760px)]">
           <div className="rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-500 to-orange-500 text-black px-4 py-3 shadow-elev3 flex items-center justify-between gap-3">
             <div>
-              <div className="text-[11px] uppercase tracking-widest">Subscription Required</div>
-              <div className="text-sm font-semibold">Unlock all chapters in this subject for PHP {Number(subject.price || 0).toLocaleString()}</div>
+              <div className="text-[11px] uppercase tracking-widest">Upgrade To Premium</div>
+              <div className="text-sm font-semibold">Unlock all subjects, all chapters, quiz mode, bar exam simulation, and unlimited AI.</div>
             </div>
             <button
               onClick={() => setShowSubscribeModal(true)}
               className="h-9 px-4 rounded-xl bg-black/90 text-white text-xs font-semibold hover:bg-black"
             >
-              Unlock Subject
+              Upgrade
             </button>
           </div>
         </div>
@@ -174,10 +183,10 @@ export default function SubjectPage({ subjectId, onOpenChapter, onBackYear }) {
       {showSubscribeModal && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={() => setShowSubscribeModal(false)}>
           <div className="w-full max-w-md rounded-2xl border border-md-outline/50 bg-md-surf p-5" onClick={e => e.stopPropagation()}>
-            <h3 className="text-xl font-semibold text-md-onsurf">Unlock {subject?.title}</h3>
-            <p className="mt-2 text-sm text-md-onsurfvar">This unlocks every chapter and lesson under this subject.</p>
+            <h3 className="text-xl font-semibold text-md-onsurf">Upgrade To Premium</h3>
+            <p className="mt-2 text-sm text-md-onsurfvar">Unlock every subject, all chapters, quiz mode, bar exam simulation, and unlimited AI usage.</p>
             <div className="mt-4 rounded-xl bg-md-surf2 border border-md-outline/40 p-3 text-sm text-md-onsurf flex items-center justify-between">
-              <span>One-time subject access</span>
+              <span>Premium access</span>
               <span className="font-semibold text-amber-300">PHP {Number(subject?.price || 0).toLocaleString()}</span>
             </div>
             <div className="mt-5 flex items-center gap-2">
@@ -192,7 +201,7 @@ export default function SubjectPage({ subjectId, onOpenChapter, onBackYear }) {
                 onClick={handleSubscribe}
                 className="flex-1 h-10 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-semibold text-sm disabled:opacity-70"
               >
-                {submitting ? 'Processing...' : 'Pay and Unlock'}
+                {submitting ? 'Processing...' : 'Pay and Unlock Premium'}
               </button>
             </div>
           </div>
