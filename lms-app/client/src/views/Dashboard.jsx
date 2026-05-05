@@ -86,6 +86,7 @@ export default function Dashboard({ onNavigate, onNavigatePath, user }) {
 
   const continuePath = lastReader?.path || (continueSubject ? `/subject/${continueSubject.id}` : '/year/1')
   const nextLesson = continueSubject ? `Chapter ${lastReader?.chapterId || 1}` : 'No lesson yet'
+  const heroRemaining = Math.max(0, continueSubject?.remaining || 0)
   const todayGoalRemaining = Math.min(6, continueSubject?.remaining || 0)
   const todayGoalMins = Math.max(20, todayGoalRemaining * 12)
   const todayGoalPct = Math.max(10, Math.min(100, Math.round(((6 - todayGoalRemaining) / 6) * 100)))
@@ -97,15 +98,13 @@ export default function Dashboard({ onNavigate, onNavigatePath, user }) {
       <section className="relative overflow-hidden rounded-3xl border border-[#27406f] bg-gradient-to-br from-[#0c1930] via-[#0a2340] to-[#10284c] p-6 shadow-[0_20px_50px_rgba(2,12,27,0.65)]">
         <div className="absolute -top-10 -right-10 h-44 w-44 rounded-full bg-orange-400/10 blur-3xl" />
         <div className="relative">
-          <div className="inline-flex items-center gap-2 rounded-full border border-orange-300/25 bg-orange-500/10 px-3 py-1 text-[11px] text-orange-200/90">
+          <h1 className="mt-1 text-3xl md:text-4xl font-reader font-bold text-white leading-tight">
             Continue Study
-          </div>
-          <h1 className="mt-3 text-2xl md:text-3xl font-reader font-bold text-white leading-tight">
-            {continueSubject?.title || 'Load your first subject'}
           </h1>
           <p className="mt-2 text-sm text-blue-100/80">
-            Last lesson: {nextLesson} • {continueSubject?.progress || 0}% complete
+            {continueSubject?.title || 'Load your first subject'} • Last lesson: {nextLesson}
           </p>
+          <p className="mt-1 text-xs text-orange-200/80">{heroRemaining} lessons remaining</p>
 
           <div className="mt-4 h-2 rounded-full bg-white/10 overflow-hidden">
             <div
@@ -118,7 +117,7 @@ export default function Dashboard({ onNavigate, onNavigatePath, user }) {
             onClick={() => onNavigatePath?.(continuePath)}
             className="mt-5 h-11 px-5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 text-[#111827] text-sm font-bold hover:brightness-105 transition"
           >
-            Continue Study
+            Resume Now
           </button>
         </div>
       </section>
@@ -165,7 +164,7 @@ export default function Dashboard({ onNavigate, onNavigatePath, user }) {
         <h2 className="text-sm font-reader font-bold text-white mb-3">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <button onClick={() => onNavigate('study')} className="h-11 rounded-xl bg-blue-600/20 border border-blue-400/35 text-blue-100 text-xs font-semibold">Practice Quiz</button>
-          <button onClick={() => onNavigate('ranked')} className="h-11 rounded-xl bg-orange-500/20 border border-orange-400/35 text-orange-100 text-xs font-semibold">Battle Mode</button>
+          <button disabled className="h-11 rounded-xl bg-orange-500/10 border border-orange-400/25 text-orange-200/70 text-xs font-semibold cursor-not-allowed">Battle Mode • Coming Soon</button>
           <button onClick={() => onNavigate('study')} className="h-11 rounded-xl bg-rose-500/20 border border-rose-400/35 text-rose-100 text-xs font-semibold">Review Weak Areas</button>
         </div>
       </section>

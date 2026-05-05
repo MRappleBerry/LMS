@@ -164,6 +164,12 @@ function ReaderContentBase({
     lineHeight: `${2 * Math.max(1, fontScale * 0.95)}rem`,
   }
 
+  const estimatedReadMin = useMemo(() => {
+    const text = visibleSections.map(s => s.content || '').join(' ')
+    const words = text.trim().split(/\s+/).filter(Boolean).length
+    return Math.max(1, Math.round(words / 180))
+  }, [visibleSections])
+
   return (
     <section className="flex-1 min-w-0 relative h-full">
       <div className="absolute top-0 left-0 right-0 h-1 bg-md-surf3 z-20">
@@ -182,7 +188,7 @@ function ReaderContentBase({
             <h1 className="mt-2 text-3xl md:text-4xl font-semibold text-md-onsurf font-reader leading-tight">
               {chapter.title}
             </h1>
-            <p className="mt-3 text-sm text-md-onsurfvar">Chapter {chapterId} • Structured law book content • No PDF renderer</p>
+            <p className="mt-3 text-sm text-md-onsurfvar">Chapter {chapterId} • {estimatedReadMin} min read • Structured law content</p>
           </header>
 
           <div className="space-y-12">

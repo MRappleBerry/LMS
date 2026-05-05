@@ -73,6 +73,14 @@ export default function StudyMode() {
     return () => window.clearInterval(timer)
   }, [tab, done, answered, timeLeft])
 
+  useEffect(() => {
+    if (tab !== 'quiz' || done || !answered) return
+    const timer = window.setTimeout(() => {
+      nextQuestion()
+    }, 1400)
+    return () => window.clearTimeout(timer)
+  }, [tab, done, answered, qIdx])
+
   function submitAnswer() {
     if (selected === null || answered) return
     setAnswered(true)
@@ -198,7 +206,7 @@ export default function StudyMode() {
                   onClick={nextQuestion}
                   className="h-10 rounded-xl bg-gradient-to-r from-orange-500 to-amber-400 text-black text-sm font-bold disabled:opacity-40"
                 >
-                  {qIdx + 1 === QUIZ.length ? 'Finish' : 'Next'}
+                  {qIdx + 1 === QUIZ.length ? 'Finishing...' : 'Auto Next...'}
                 </button>
               </div>
             </>
