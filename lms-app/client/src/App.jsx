@@ -13,6 +13,7 @@ import RankedMatch from './views/RankedMatch'
 import ReaderPage from './views/ReaderPage'
 import YearPage from './views/YearPage'
 import SubjectPage from './views/SubjectPage'
+import LearnPage from './views/LearnPage'
 import LoginPage from './views/LoginPage'
 import WeeklyChallenge from './views/WeeklyChallenge'
 import { getSubjectMeta } from './data/books/catalog'
@@ -102,6 +103,13 @@ function parsePath(pathname) {
   }
 
   return {
+    const learnMatch = pathname.match(/^\/learn$/)
+    if (learnMatch) {
+      return {
+        type: 'learn',
+        pathname,
+      }
+    }
     type: 'view',
     view: viewRoutes[pathname] || 'reader',
     pathname,
@@ -142,7 +150,7 @@ export default function App() {
 
   useEffect(() => {
     if (window.location.pathname === '/') {
-      const defaultPath = '/year/1'
+      const defaultPath = '/learn'
       window.history.replaceState({}, '', defaultPath)
       setRoute(parsePath(defaultPath))
     }
@@ -232,6 +240,19 @@ export default function App() {
   const subjectMeta = route.type === 'reader' ? getSubjectMeta(route.subject) : null
   const isAuthRoute = route.type === 'login'
 
+    // Persist last reader session for the "Resume" button in LearnPage
+    useEffect(() => {
+      if (route.type !== 'reader') return
+      try {
+        localStorage.setItem('lexisai.last.reader', JSON.stringify({
+          path:      route.pathname,
+          subjectId: route.subject,
+          chapterId: route.chapterId,
+          timestamp: Date.now(),
+        }))
+      } catch { /* noop */ }
+    }, [route.type, route.pathname, route.subject, route.chapterId])
+
   const navigatePath = useCallback((path) => {
     if (window.location.pathname === path) return
     window.history.pushState({}, '', path)
@@ -261,7 +282,7 @@ export default function App() {
   const navigate = useCallback((id) => {
     if (id === 'more') { setDrawerOpen(true); return }
     if (id === 'reader') {
-      navigatePath('/year/1')
+      navigatePath('/learn')
     } else {
       navigatePath(buildPathFromView(id))
     }
