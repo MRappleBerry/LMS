@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fetchSubjectsByYearWithAccess } from '../lib/curriculumApi'
+import { readOnboardingProfile } from '../lib/onboardingProfile'
 
 const READER_STATE_KEY = 'lexisai.reader.state.v1'
 const LAST_READER_KEY = 'lexisai.last.reader'
@@ -75,16 +76,24 @@ export default function Dashboard({ onNavigate, onNavigatePath, user }) {
   }, [subjects])
 
   const lastReader = useMemo(() => readLastReader(), [])
+  const onboardingProfile = useMemo(() => readOnboardingProfile(user?.id), [user?.id])
   const continueSubject = useMemo(() => {
     if (!computed.length) return null
+
     if (lastReader?.subjectId) {
       const match = computed.find(s => s.id === lastReader.subjectId)
       if (match) return match
     }
-    return computed[0]
-  }, [computed, lastReader])
 
-  const continuePath = lastReader?.path || (continueSubject ? `/subject/${continueSubject.id}` : '/year/1')
+    if (onboardingProfile?.recommendedSubjectId) {
+      const match = computed.find(s => s.id === onboardingProfile.recommendedSubjectId)
+      if (match) return match
+    }
+
+    return computed[0]
+  }, [computed, lastReader, onboardingProfile])
+
+  const continuePath = lastReader?.path || onboardingProfile?.recommendedPath || (continueSubject ? `/subject/${continueSubject.id}` : '/year/1')
   const nextLesson = continueSubject ? `Chapter ${lastReader?.chapterId || 1}` : 'No lesson yet'
   const heroRemaining = Math.max(0, continueSubject?.remaining || 0)
   const todayGoalRemaining = Math.min(6, continueSubject?.remaining || 0)

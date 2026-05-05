@@ -15,9 +15,11 @@ import YearPage from './views/YearPage'
 import SubjectPage from './views/SubjectPage'
 import LoginPage from './views/LoginPage'
 import WeeklyChallenge from './views/WeeklyChallenge'
+import OnboardingAssessment from './views/OnboardingAssessment'
 import { getSubjectMeta } from './data/books/catalog'
 import { fetchSession, logoutSession } from './lib/authApi'
 import { clearPreferredUserId, setPreferredUserId } from './lib/curriculumApi'
+import { hasCompletedOnboarding } from './lib/onboardingProfile'
 
 /* FAB config per view -------------------------------------------------- */
 const FAB_CONFIG = {
@@ -47,6 +49,13 @@ function parsePath(pathname) {
   if (pathname === '/login') {
     return {
       type: 'login',
+      pathname,
+    }
+  }
+
+  if (pathname === '/onboarding') {
+    return {
+      type: 'onboarding',
       pathname,
     }
   }
@@ -131,13 +140,14 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [readerFocusMode, setReaderFocusMode] = useState(false)
+  const [onboardingRefresh, setOnboardingRefresh] = useState(0)
   const [authLoading, setAuthLoading] = useState(true)
   const [user, setUser] = useState(null)
   const fabRef = useRef(null)
 
   function isProtectedRoute(nextRoute) {
     if (!nextRoute) return false
-    if (nextRoute.type === 'reader' || nextRoute.type === 'subject') return true
+    if (nextRoute.type === 'reader' || nextRoute.type === 'subject' || nextRoute.type === 'onboarding') return true
     return nextRoute.type === 'view' && nextRoute.view === 'dashboard'
   }
 
@@ -223,6 +233,8 @@ export default function App() {
   useEffect(() => {
     if (authLoading) return
 
+    const completedOnboarding = user?.id ? hasCompletedOnboarding(user.id) : false
+
     if (!user && isProtectedRoute(route) && route.type !== 'login') {
       const returnTo = encodeURIComponent(route.pathname || '/dashboard')
       const next = `/login?returnTo=${returnTo}`
@@ -232,7 +244,22 @@ export default function App() {
       return
     }
 
-    if (user && route.type === 'login') {
+    if (user && !completedOnboarding && route.type !== 'onboarding') {
+      window.history.replaceState({}, '', '/onboarding')
+      setRoute(parsePath('/onboarding'))
+      setViewKey(k => k + 1)
+      return
+    }
+
+    if (user && completedOnboarding && route.type === 'onboarding') {
+      const nextPath = '/dashboard'
+      window.history.replaceState({}, '', nextPath)
+      setRoute(parsePath(nextPath))
+      setViewKey(k => k + 1)
+      return
+    }
+
+    if (user && completedOnboarding && route.type === 'login') {
       const params = new URLSearchParams(window.location.search)
       const returnTo = params.get('returnTo')
       const nextPath = returnTo && returnTo.startsWith('/') && !returnTo.startsWith('/api/')
@@ -242,11 +269,12 @@ export default function App() {
       setRoute(parsePath(nextPath))
       setViewKey(k => k + 1)
     }
-  }, [authLoading, user, route])
+  }, [authLoading, user, route, onboardingRefresh])
 
   const activeView = ['reader', 'year', 'subject', 'legacy-reader'].includes(route.type) ? 'reader' : route.view
   const subjectMeta = route.type === 'reader' ? getSubjectMeta(route.subject) : null
   const isAuthRoute = route.type === 'login'
+  const hideOnboardingChrome = route.type === 'onboarding'
   const hideReaderChrome = route.type === 'reader' && readerFocusMode
 
   const navigatePath = useCallback((path) => {
@@ -365,7 +393,7 @@ export default function App() {
   return (
     <div className="fixed inset-0 bg-md-bg text-md-onsurf overflow-hidden">
       {/* Top App Bar */}
-      {!isAuthRoute && !hideReaderChrome && (
+      {!isAuthRoute && !hideOnboardingChrome && !hideReaderChrome && (
         <TopAppBar
           activeView={activeView}
           routeType={route.type}
@@ -381,11 +409,21 @@ export default function App() {
       {/* Scrollable content between top bar and bottom nav */}
       <main
         className={`absolute inset-x-0 scrollbar-hide ${route.type === 'reader' ? 'overflow-hidden' : 'overflow-y-auto'}`}
-        style={{ top: isAuthRoute || hideReaderChrome ? 0 : 56, bottom: isAuthRoute || hideReaderChrome ? 0 : 64 }}
+        style={{ top: isAuthRoute || hideOnboardingChrome || hideReaderChrome ? 0 : 56, bottom: isAuthRoute || hideOnboardingChrome || hideReaderChrome ? 0 : 64 }}
       >
         <div key={viewKey} className={`animate-view-in ${route.type === 'reader' ? 'h-full min-h-0' : 'min-h-full'}`}>
           {route.type === 'login'
             ? <LoginPage />
+            : route.type === 'onboarding'
+            ? (
+              <OnboardingAssessment
+                user={user}
+                onFinish={(nextPath) => {
+                  setOnboardingRefresh(v => v + 1)
+                  navigatePath(nextPath || '/dashboard')
+                }}
+              />
+            )
             : route.type === 'reader'
             ? (
               <ReaderPage
@@ -413,7 +451,7 @@ export default function App() {
       </main>
 
       {/* FAB — only for views that have one */}
-      {!isAuthRoute && !hideReaderChrome && fab && (
+      {!isAuthRoute && !hideOnboardingChrome && !hideReaderChrome && fab && (
         <button
           ref={fabRef}
           onClick={handleFab}
@@ -426,10 +464,10 @@ export default function App() {
       )}
 
       {/* Bottom Navigation */}
-      {!isAuthRoute && !hideReaderChrome && <BottomNav activeView={activeView} onNavigate={navigate} />}
+      {!isAuthRoute && !hideOnboardingChrome && !hideReaderChrome && <BottomNav activeView={activeView} onNavigate={navigate} />}
 
       {/* Drawer */}
-      {!isAuthRoute && !hideReaderChrome && (
+      {!isAuthRoute && !hideOnboardingChrome && !hideReaderChrome && (
         <Drawer
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
@@ -441,7 +479,7 @@ export default function App() {
       )}
 
       {/* Global Search */}
-      {!isAuthRoute && searchOpen && (
+      {!isAuthRoute && !hideOnboardingChrome && searchOpen && (
         <div className="fixed inset-0 z-[70] bg-black/60 flex items-start justify-center p-4 pt-16" onClick={() => setSearchOpen(false)}>
           <div className="w-full max-w-2xl bg-md-surf border border-md-outline/60 rounded-2xl shadow-elev3 overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-3 border-b border-md-outline/50">
