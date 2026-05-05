@@ -147,8 +147,8 @@ export default function RankedMatch({ user, onNavigate }) {
     }
 
     function onConnectError() {
-      setIsOfflineMode(true)
-      setStatusText('Ready for ranked battle.')
+      // Don't permanently go offline — server may just be waking up (Render free tier)
+      setStatusText('Connecting to server… please wait.')
     }
 
     socket.on('rank:sync', onRankSync)
@@ -224,20 +224,34 @@ export default function RankedMatch({ user, onNavigate }) {
 
   function handleFindMatch() {
     const socket = getRankedSocket()
-    if (!socket || !socket.connected || isOfflineMode) {
+
+    // No server configured at all — go straight to offline bot
+    if (!socket) {
       startOfflineMatch()
       return
     }
 
     setError('')
     setMode('searching')
-    setStatusText('Finding match… bot fallback in 10 minutes if no opponent found.')
-    socket.emit('match:find')
 
     if (fallbackTimerRef.current) window.clearTimeout(fallbackTimerRef.current)
+    // 10-minute overall fallback (server bot or offline bot)
     fallbackTimerRef.current = window.setTimeout(() => {
       if (modeRef.current === 'searching') startOfflineMatch()
-    }, 600000) // 10 minutes before bot fallback
+    }, 600000)
+
+    if (socket.connected) {
+      setStatusText('Finding match… bot fallback in 10 minutes if no opponent found.')
+      socket.emit('match:find')
+    } else {
+      // Server is waking up (Render free tier cold start ~50s) — wait for connection
+      setStatusText('Connecting to server… this may take up to 60 seconds on first load.')
+      socket.once('connect', () => {
+        if (modeRef.current !== 'searching') return
+        setStatusText('Finding match… bot fallback in 10 minutes if no opponent found.')
+        socket.emit('match:find')
+      })
+    }
   }
 
   function buildOfflineQuestions() {

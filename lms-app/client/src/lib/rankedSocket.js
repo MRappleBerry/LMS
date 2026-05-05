@@ -9,8 +9,7 @@ export function connectRankedSocket(profile = {}) {
   if (!SOCKET_URL) return null
 
   socket = io(SOCKET_URL, {
-    transports: ['websocket'],
-    withCredentials: true,
+    transports: ['polling', 'websocket'], // polling first for mobile network compatibility
     query: {
       userId: String(profile.userId || ''),
       name: profile.name || 'Law Learner',
