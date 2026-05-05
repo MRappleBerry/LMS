@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: lexisai-server
+    runtime: node
+    rootDir: lms-app/server
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CLIENT_URL
+        value: https://lexisai-lms.vercel.app
+      # Add your OPENAI_API_KEY in the Render dashboard (do not commit secrets)
+      # - key: OPENAI_API_KEY
+      #   sync: false

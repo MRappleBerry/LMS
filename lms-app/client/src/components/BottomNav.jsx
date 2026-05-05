@@ -74,7 +74,7 @@ export default function BottomNav({ activeView, onNavigate }) {
     <nav className="fixed bottom-0 inset-x-0 z-40 glass border-t border-white/[0.04] nav-safe">
       <div className="flex items-stretch h-16">
         {ITEMS.map(item => {
-          const active = activeView === item.id || (item.id === 'more' && ['notes', 'modules', 'settings', 'dashboard'].includes(activeView))
+          const active = activeView === item.id || (item.id === 'more' && ['notes', 'modules', 'settings', 'dashboard', 'weekly', 'ranked'].includes(activeView))
           return (
             <button
               key={item.id}

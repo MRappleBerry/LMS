@@ -152,6 +152,18 @@ function redirect(res, location) {
   res.end()
 }
 
+// Active session tracking (in-memory, best-effort for serverless).
+// Tracks the latest sessionId per userId to detect concurrent logins.
+const activeSessionStore = new Map()
+
+function registerActiveSession(userId, sessionId) {
+  activeSessionStore.set(String(userId), String(sessionId))
+}
+
+function getActiveSession(userId) {
+  return activeSessionStore.get(String(userId)) || null
+}
+
 module.exports = {
   SESSION_COOKIE_NAME,
   SESSION_TTL_SECONDS,
@@ -166,4 +178,6 @@ module.exports = {
   buildGoogleState,
   verifyGoogleState,
   redirect,
+  registerActiveSession,
+  getActiveSession,
 }

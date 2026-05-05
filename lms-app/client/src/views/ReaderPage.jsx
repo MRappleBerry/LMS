@@ -324,7 +324,15 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
             </div>
           )}
           <div className="shrink-0 px-4 py-2 border-b border-md-outline/40 flex items-center justify-between">
-            <span className="text-xs text-md-onsurfvar">Learning System</span>
+            <button
+              onClick={() => onNavigatePath('/dashboard')}
+              className="flex items-center gap-1.5 text-xs text-md-onsurfvar hover:text-md-onsurf transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6"/>
+              </svg>
+              Dashboard
+            </button>
             <div className="flex items-center bg-md-surf2 border border-md-outline/50 rounded-xl p-1 gap-1 text-xs">
               <button
                 onClick={() => setBarExamMode(false)}

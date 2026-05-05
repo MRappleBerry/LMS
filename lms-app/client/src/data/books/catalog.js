@@ -41,6 +41,179 @@ export const BOOK_CATALOG = {
         ]
       }
     ]
+  },
+  'persons-and-family-relations': {
+    subject: 'persons-and-family-relations',
+    title: 'Persons and Family Relations',
+    shortTitle: 'Pers & Fam',
+    yearLevel: '1st Year',
+    chapters: [
+      {
+        id: '1',
+        title: 'Civil Personality and Capacity to Act',
+        sections: [
+          { id: '1-1', heading: 'Civil Personality: Concept and Commencement', yearLevel: '1st Year' },
+          { id: '1-2', heading: 'Capacity to Act and Restrictions', yearLevel: '1st Year' }
+        ]
+      },
+      {
+        id: '2',
+        title: 'Marriage: Requisites, Validity, and Void Marriages',
+        sections: [
+          { id: '2-1', heading: 'Essential and Formal Requisites of Marriage', yearLevel: '1st Year' },
+          { id: '2-2', heading: 'Void and Voidable Marriages', yearLevel: '1st Year' },
+          { id: '2-3', heading: 'Property Relations Between Spouses', yearLevel: '1st Year' }
+        ]
+      }
+    ]
+  },
+  'constitutional-law-2': {
+    subject: 'constitutional-law-2',
+    title: 'Constitutional Law II',
+    shortTitle: 'Consti Law II',
+    yearLevel: '2nd Year',
+    chapters: [
+      {
+        id: '1',
+        title: 'The Bill of Rights: Due Process and Equal Protection',
+        sections: [
+          { id: '1-1', heading: 'Due Process of Law', yearLevel: '2nd Year' },
+          { id: '1-2', heading: 'Equal Protection of the Laws', yearLevel: '2nd Year' },
+          { id: '1-3', heading: 'Freedom of Speech and Expression', yearLevel: '2nd Year' }
+        ]
+      },
+      {
+        id: '2',
+        title: 'Rights of the Accused and Search and Seizure',
+        sections: [
+          { id: '2-1', heading: 'Rights of Persons Under Investigation', yearLevel: '2nd Year' },
+          { id: '2-2', heading: 'Search and Seizure: Warrants and Exceptions', yearLevel: '2nd Year' }
+        ]
+      }
+    ]
+  },
+  'property': {
+    subject: 'property',
+    title: 'Property',
+    shortTitle: 'Property',
+    yearLevel: '2nd Year',
+    chapters: [
+      {
+        id: '1',
+        title: 'Ownership and Its Incidents',
+        sections: [
+          { id: '1-1', heading: 'Concept and Attributes of Ownership', yearLevel: '2nd Year' },
+          { id: '1-2', heading: 'Co-Ownership', yearLevel: '2nd Year' }
+        ]
+      },
+      {
+        id: '2',
+        title: 'Land Titles and the Torrens System',
+        sections: [
+          { id: '2-1', heading: 'The Torrens System and Original Registration', yearLevel: '2nd Year' },
+          { id: '2-2', heading: 'Subsequent Registration and Dealings', yearLevel: '2nd Year' }
+        ]
+      }
+    ]
+  },
+  'evidence': {
+    subject: 'evidence',
+    title: 'Evidence',
+    shortTitle: 'Evidence',
+    yearLevel: '3rd Year',
+    chapters: [
+      {
+        id: '1',
+        title: 'Admissibility of Evidence',
+        sections: [
+          { id: '1-1', heading: 'Relevance and Admissibility', yearLevel: '3rd Year' },
+          { id: '1-2', heading: 'Hearsay Rule and Exceptions', yearLevel: '3rd Year' },
+          { id: '1-3', heading: 'Exclusionary Rules: Fruit of the Poisonous Tree', yearLevel: '3rd Year' }
+        ]
+      },
+      {
+        id: '2',
+        title: 'Witnesses and Privilege',
+        sections: [
+          { id: '2-1', heading: 'Competency and Credibility of Witnesses', yearLevel: '3rd Year' },
+          { id: '2-2', heading: 'Privileged Communications', yearLevel: '3rd Year' }
+        ]
+      }
+    ]
+  },
+  'corporation-law': {
+    subject: 'corporation-law',
+    title: 'Corporation Law',
+    shortTitle: 'Corp Law',
+    yearLevel: '3rd Year',
+    chapters: [
+      {
+        id: '1',
+        title: 'Nature and Formation of Corporations',
+        sections: [
+          { id: '1-1', heading: 'Concept and Attributes of a Corporation', yearLevel: '3rd Year' },
+          { id: '1-2', heading: 'Piercing the Corporate Veil', yearLevel: '3rd Year' }
+        ]
+      },
+      {
+        id: '2',
+        title: 'Corporate Governance and Dissolution',
+        sections: [
+          { id: '2-1', heading: 'Powers and Duties of the Board of Directors', yearLevel: '3rd Year' },
+          { id: '2-2', heading: 'Dissolution and Winding Up', yearLevel: '3rd Year' }
+        ]
+      }
+    ]
+  },
+  'taxation-law': {
+    subject: 'taxation-law',
+    title: 'Taxation Law',
+    shortTitle: 'Tax Law',
+    yearLevel: '4th Year',
+    chapters: [
+      {
+        id: '1',
+        title: 'Fundamental Principles of Taxation',
+        sections: [
+          { id: '1-1', heading: 'Nature, Basis, and Limitations of Taxation', yearLevel: '4th Year' },
+          { id: '1-2', heading: 'Income Taxation: Concept and Classification', yearLevel: '4th Year' },
+          { id: '1-3', heading: 'Value Added Tax (VAT)', yearLevel: '4th Year' }
+        ]
+      },
+      {
+        id: '2',
+        title: "Estate Tax, Donor's Tax, and Tax Remedies",
+        sections: [
+          { id: '2-1', heading: 'Estate Tax', yearLevel: '4th Year' },
+          { id: '2-2', heading: 'Tax Remedies: Assessment and Collection', yearLevel: '4th Year' }
+        ]
+      }
+    ]
+  },
+  'labor-law': {
+    subject: 'labor-law',
+    title: 'Labor Law and Social Legislation',
+    shortTitle: 'Labor Law',
+    yearLevel: '4th Year',
+    chapters: [
+      {
+        id: '1',
+        title: 'Employment Relations and Labor Standards',
+        sections: [
+          { id: '1-1', heading: 'Employer-Employee Relationship', yearLevel: '4th Year' },
+          { id: '1-2', heading: 'Security of Tenure and Just Causes for Dismissal', yearLevel: '4th Year' },
+          { id: '1-3', heading: 'Wage Laws and Labor Standards', yearLevel: '4th Year' }
+        ]
+      },
+      {
+        id: '2',
+        title: 'Labor Relations and Collective Bargaining',
+        sections: [
+          { id: '2-1', heading: 'Right to Self-Organization and Union Formation', yearLevel: '4th Year' },
+          { id: '2-2', heading: 'Collective Bargaining Agreements and Unfair Labor Practices', yearLevel: '4th Year' }
+        ]
+      }
+    ]
   }
 }
 

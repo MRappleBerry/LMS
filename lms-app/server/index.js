@@ -2,9 +2,13 @@ require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
 const OpenAI = require('openai')
+const http = require('http')
+const { Server } = require('socket.io')
+const { initRankedEngine } = require('./ranked/engine')
 
 const app = express()
 const PORT = process.env.PORT || 5000
+const server = http.createServer(app)
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(express.json())
@@ -13,8 +17,16 @@ app.use(express.json())
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
-  process.env.CLIENT_URL, // e.g. https://your-app.vercel.app
+  'https://lexisai-lms.vercel.app',
+  process.env.CLIENT_URL, // override or additional origin
 ].filter(Boolean)
+
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+  },
+})
 
 app.use(cors({
   origin: (origin, cb) => {
@@ -121,6 +133,9 @@ app.post('/api/chat', async (req, res) => {
     res.status(status < 500 ? status : 500).json({ error: message })
   }
 })
+
+// Ranked matchmaking + realtime battle system
+initRankedEngine({ app, io })
 
 app.post('/api/explain', async (req, res) => {
   const { context, instruction } = req.body || {}
@@ -451,7 +466,8 @@ app.use((_req, res) => {
 })
 
 // ── Start ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`LexisAI server running on port ${PORT}`)
   console.log(`AI mode: ${process.env.OPENAI_API_KEY ? '✓ OpenAI' : '⚠ Mock (set OPENAI_API_KEY to enable real AI)'}`)
+  console.log('Realtime mode: socket.io enabled for ranked matchmaking')
 })

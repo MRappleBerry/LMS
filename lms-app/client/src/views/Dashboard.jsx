@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { fetchWeeklyChallenge } from '../lib/weeklyChallengeApi'
 
 const YEAR_LEVELS = [
   {
@@ -46,6 +47,7 @@ const YEAR_LEVELS = [
 const QUICK_ACTIONS = [
   { icon: '🤖', label: 'AI Assistant', desc: 'Ask legal questions', view: 'chat',  grad: 'from-indigo-600/20 to-violet-600/20', border: 'border-indigo-500/20' },
   { icon: '📚', label: 'Case Library', desc: '1,245 cases',        view: 'cases', grad: 'from-blue-600/20 to-cyan-600/20',    border: 'border-blue-500/20'   },
+  { icon: '⚔', label: 'Ranked Match', desc: 'Live 1v1 challenge',  view: 'ranked', grad: 'from-emerald-600/20 to-cyan-600/20', border: 'border-emerald-500/20' },
   { icon: '🧠', label: 'Study Mode',   desc: '82% mastery',        view: 'study', grad: 'from-emerald-600/20 to-teal-600/20', border: 'border-emerald-500/20'},
   { icon: '🎓', label: 'AI Modules',   desc: 'Generate curricula', view: 'modules',grad: 'from-violet-600/20 to-purple-600/20',border: 'border-violet-500/20' },
 ]
@@ -65,10 +67,12 @@ const RECENT = [
 
 function StatCard({ label, value, color, icon }) {
   return (
-    <div className="md-card bg-md-surf2 border border-md-outline/60 rounded-2xl p-4 flex flex-col gap-2">
-      <span className="text-xl">{icon}</span>
-      <div className={`text-2xl font-bold ${color}`}>{value}</div>
-      <div className="text-[11px] text-md-onsurfvar font-medium">{label}</div>
+    <div className="flex items-center gap-2 bg-md-surf2 border border-md-outline/60 rounded-2xl px-3 py-2.5">
+      <span className="text-base leading-none">{icon}</span>
+      <div className="min-w-0">
+        <div className={`text-sm font-bold leading-tight ${color}`}>{value}</div>
+        <div className="text-[10px] text-md-onsurfvar leading-tight mt-0.5">{label}</div>
+      </div>
     </div>
   )
 }
@@ -84,8 +88,53 @@ function ProgressBar({ value, color = 'from-md-primary to-md-secondary' }) {
   )
 }
 
-export default function Dashboard({ onNavigate }) {
+export default function Dashboard({ onNavigate, user }) {
   const [selectedYear, setSelectedYear] = useState(YEAR_LEVELS[0])
+  const [weeklyInfo, setWeeklyInfo] = useState({
+    loading: true,
+    hasSubmitted: false,
+    title: 'Weekly Law Challenge',
+    difficulty: 'medium',
+    questionCount: 8,
+    endsIn: 'Loading...',
+  })
+
+  useEffect(() => {
+    let mounted = true
+
+    function computeEndsIn(endDate) {
+      const left = Math.max(0, new Date(endDate).getTime() - Date.now())
+      const days = Math.floor(left / (24 * 60 * 60 * 1000))
+      const hours = Math.floor((left % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000))
+      if (days > 0) return `${days}d ${hours}h`
+      const minutes = Math.floor((left % (60 * 60 * 1000)) / (60 * 1000))
+      return `${hours}h ${minutes}m`
+    }
+
+    fetchWeeklyChallenge()
+      .then((data) => {
+        if (!mounted) return
+        const source = data?.challenge || {}
+        setWeeklyInfo({
+          loading: false,
+          hasSubmitted: Boolean(data?.hasSubmitted),
+          title: source.title || 'Weekly Law Challenge',
+          difficulty: source.difficulty || 'medium',
+          questionCount: source.questionCount || 8,
+          endsIn: source.endDate ? computeEndsIn(source.endDate) : '7d',
+        })
+      })
+      .catch(() => {
+        if (!mounted) return
+        setWeeklyInfo((prev) => ({
+          ...prev,
+          loading: false,
+          endsIn: 'Unavailable',
+        }))
+      })
+
+    return () => { mounted = false }
+  }, [])
 
   return (
     <div className="px-4 pb-6 space-y-5">
@@ -104,7 +153,7 @@ export default function Dashboard({ onNavigate }) {
               ● 3 new cases today
             </span>
           </div>
-          <h1 className="text-2xl font-bold text-white mt-2">Welcome back, Alex 👋</h1>
+          <h1 className="text-2xl font-bold text-white mt-2">Welcome back, {user?.name?.split(' ')[0] || 'Alex'} 👋</h1>
           <p className="text-indigo-200 text-sm mt-1">You're on a 12-day streak. Keep it up!</p>
 
           <div className="mt-4 flex items-center gap-3">
@@ -125,8 +174,43 @@ export default function Dashboard({ onNavigate }) {
       </div>
 
       {/* ── Stats row ── */}
-      <div className="grid grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-4 gap-2">
         {STATS.map(s => <StatCard key={s.label} {...s} />)}
+      </div>
+
+      {/* ── Weekly challenge event card ── */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-700 via-blue-700 to-indigo-800 border border-white/10 p-4 shadow-elev3">
+        <div className="absolute -top-10 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+        <div className="relative z-10">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-xs text-cyan-100">Weekly Event</div>
+            <div className="text-[11px] text-cyan-100 bg-white/10 px-2 py-1 rounded-full border border-white/15">
+              Ends in {weeklyInfo.endsIn}
+            </div>
+          </div>
+          <h2 className="text-lg font-bold text-white mt-1">{weeklyInfo.title}</h2>
+          <div className="mt-2 flex items-center gap-2 text-[11px] text-cyan-100">
+            <span className="px-2 py-1 rounded-full bg-white/10 border border-white/15">{weeklyInfo.questionCount} questions</span>
+            <span className="px-2 py-1 rounded-full bg-white/10 border border-white/15">{weeklyInfo.difficulty}</span>
+            {weeklyInfo.hasSubmitted ? <span className="px-2 py-1 rounded-full bg-emerald-500/20 border border-emerald-300/30 text-emerald-100">Submitted</span> : null}
+          </div>
+          <div className="mt-3 h-1.5 bg-white/15 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-emerald-300 to-cyan-200" style={{ width: weeklyInfo.hasSubmitted ? '100%' : '42%' }} />
+          </div>
+          <button
+            onClick={() => onNavigate('weekly')}
+            disabled={weeklyInfo.loading}
+            className="mt-4 w-full h-10 rounded-xl bg-white text-indigo-700 font-semibold text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {weeklyInfo.hasSubmitted ? 'View Results and Leaderboard' : 'Start Challenge'}
+          </button>
+          <button
+            onClick={() => onNavigate('ranked')}
+            className="mt-2 w-full h-10 rounded-xl bg-white/15 border border-white/20 text-white font-semibold text-sm"
+          >
+            Find Ranked Match
+          </button>
+        </div>
       </div>
 
       {/* ── Quick actions ── */}

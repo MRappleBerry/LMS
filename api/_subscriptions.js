@@ -8,9 +8,26 @@ const FREE_PREVIEW_CHAPTER_LIMIT = 2
 const FREE_AI_PROMPT_LIMIT = 5
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000
 
+function getAdminEmails() {
+  const raw = process.env.ADMIN_EMAILS || ''
+  return raw.split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+}
+
+function isAdminEmail(email) {
+  if (!email) return false
+  return getAdminEmails().includes(email.toLowerCase())
+}
+
+// Stores the session email keyed by userId so hasPremium can check it.
+const userEmailStore = new Map()
+
 function getUserId(req) {
   const session = getSessionFromRequest(req)
-  if (session?.userId) return String(session.userId)
+  if (session?.userId) {
+    const userId = String(session.userId)
+    if (session.email) userEmailStore.set(userId, session.email)
+    return userId
+  }
 
   const fromHeader = req.headers['x-user-id']
   const fromQuery = req.query?.userId
@@ -60,6 +77,10 @@ function getResetMeta(windowStartedAt) {
 }
 
 function hasPremium(userId) {
+  // Admin emails always have premium.
+  const email = userEmailStore.get(userId)
+  if (isAdminEmail(email)) return true
+
   const subs = getUserSubscriptions(userId)
   if (subs.has(PREMIUM_SUBSCRIPTION_ID)) return true
   // Backward compatibility: older subject-level purchases are treated as premium.

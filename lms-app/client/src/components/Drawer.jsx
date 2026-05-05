@@ -11,6 +11,28 @@ const DRAWER_ITEMS = [
     color: 'bg-indigo-500/15 text-indigo-400',
   },
   {
+    id: 'weekly',
+    label: 'Weekly Challenge',
+    desc: 'Compete and climb ranks',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2zm0 3.1l-1.66 3.37-3.72.54 2.69 2.62-.64 3.71L12 13.52l3.33 1.82-.64-3.71 2.69-2.62-3.72-.54L12 5.1z" />
+      </svg>
+    ),
+    color: 'bg-cyan-500/15 text-cyan-300',
+  },
+  {
+    id: 'ranked',
+    label: 'Ranked Match',
+    desc: 'Real-time 1v1 arena',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.98 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+      </svg>
+    ),
+    color: 'bg-emerald-500/15 text-emerald-300',
+  },
+  {
     id: 'notes',
     label: 'My Notes',
     desc: '28 notes',

@@ -9,10 +9,12 @@ import StudyMode   from './views/StudyMode'
 import Notes       from './views/Notes'
 import Settings    from './views/Settings'
 import ModuleGenerator from './views/ModuleGenerator'
+import RankedMatch from './views/RankedMatch'
 import ReaderPage from './views/ReaderPage'
 import YearPage from './views/YearPage'
 import SubjectPage from './views/SubjectPage'
 import LoginPage from './views/LoginPage'
+import WeeklyChallenge from './views/WeeklyChallenge'
 import { getSubjectMeta } from './data/books/catalog'
 import { fetchSession, logoutSession } from './lib/authApi'
 import { clearPreferredUserId, setPreferredUserId } from './lib/curriculumApi'
@@ -92,6 +94,8 @@ function parsePath(pathname) {
     '/chat': 'chat',
     '/cases': 'cases',
     '/study': 'study',
+    '/ranked': 'ranked',
+    '/weekly-challenge': 'weekly',
     '/notes': 'notes',
     '/modules': 'modules',
     '/settings': 'settings',
@@ -110,6 +114,8 @@ function buildPathFromView(id) {
     chat: '/chat',
     cases: '/cases',
     study: '/study',
+    ranked: '/ranked',
+    weekly: '/weekly-challenge',
     notes: '/notes',
     modules: '/modules',
     settings: '/settings',
@@ -166,6 +172,11 @@ export default function App() {
 
   useEffect(() => {
     let mounted = true
+    const bootFallback = window.setTimeout(() => {
+      if (!mounted) return
+      setAuthLoading(false)
+    }, 10000)
+
     fetchSession()
       .then(data => {
         if (!mounted) return
@@ -184,9 +195,13 @@ export default function App() {
       })
       .finally(() => {
         if (mounted) setAuthLoading(false)
+        window.clearTimeout(bootFallback)
       })
 
-    return () => { mounted = false }
+    return () => {
+      mounted = false
+      window.clearTimeout(bootFallback)
+    }
   }, [])
 
   useEffect(() => {
@@ -263,20 +278,24 @@ export default function App() {
   const fab = FAB_CONFIG[activeView]
 
   const views = useMemo(() => ({
-    dashboard: <Dashboard onNavigate={navigate} />,
+    dashboard: <Dashboard onNavigate={navigate} user={user} />,
     chat:      <ChatView />,
     cases:     <CaseLibrary />,
     study:     <StudyMode />,
+    ranked:    <RankedMatch user={user} onNavigate={navigate} />,
+    weekly:    <WeeklyChallenge onNavigate={navigate} />,
     notes:     <Notes />,
     modules:   <ModuleGenerator />,
     settings:  <Settings user={user} onLogout={handleLogout} />,
-  }), [navigate])
+  }), [navigate, user, handleLogout])
 
   const quickRoutes = useMemo(() => ([
     { id: 'dashboard', label: 'Home' },
     { id: 'chat', label: 'AI Chat' },
     { id: 'cases', label: 'Case Library' },
     { id: 'study', label: 'Study Mode' },
+    { id: 'ranked', label: 'Ranked Match' },
+    { id: 'weekly', label: 'Weekly Challenge' },
     { id: 'notes', label: 'My Notes' },
     { id: 'modules', label: 'Module Generator' },
     { id: 'settings', label: 'Settings' },
