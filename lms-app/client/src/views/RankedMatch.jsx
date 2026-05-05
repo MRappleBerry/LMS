@@ -1,9 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import PlayerCard from '../components/ranked/PlayerCard'
+import RankBadge, { getTierByRating } from '../components/ranked/RankBadge'
+import LeaderboardItem from '../components/ranked/LeaderboardItem'
 import { fetchRankedLeaderboard } from '../lib/rankedApi'
 import { connectRankedSocket, disconnectRankedSocket, getRankedSocket } from '../lib/rankedSocket'
 
 const QUESTION_LIMIT = 20
 const QUESTION_TIME_MS = 35000
+const MATCH_FALLBACK_MS = 600000
+
+const AVATAR_PRESETS = [
+  { id: 'av-law-1', label: 'Justice', value: '⚖️' },
+  { id: 'av-law-2', label: 'Barrister', value: '👩‍⚖️' },
+  { id: 'av-law-3', label: 'Counsel', value: '👨‍⚖️' },
+  { id: 'av-law-4', label: 'Codex', value: '📚' },
+  { id: 'av-law-5', label: 'Forum', value: '🏛️' },
+  { id: 'av-law-6', label: 'Minimal', value: '◉' },
+]
 
 const OFFLINE_QUESTIONS = [
   {
@@ -44,6 +57,12 @@ function formatMs(ms) {
   return `${min}:${String(sec).padStart(2, '0')}`
 }
 
+function formatSearchEta(elapsedMs) {
+  if (elapsedMs < 30000) return 'Estimated wait: 20-45s'
+  if (elapsedMs < 120000) return 'Estimated wait: 45-90s'
+  return 'Searching wider ELO range...'
+}
+
 export default function RankedMatch({ user, onNavigate }) {
   const [profile, setProfile] = useState(null)
   const [mode, setMode] = useState('idle')
@@ -61,6 +80,11 @@ export default function RankedMatch({ user, onNavigate }) {
   const [result, setResult] = useState(null)
   const [error, setError] = useState('')
   const [isOfflineMode, setIsOfflineMode] = useState(false)
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false)
+  const [streak, setStreak] = useState(0)
+  const [searchStartedAt, setSearchStartedAt] = useState(0)
+  const [searchElapsedMs, setSearchElapsedMs] = useState(0)
+  const [preMatchLeftMs, setPreMatchLeftMs] = useState(0)
 
   const questionStartedAtRef = useRef(0)
   const tabSwitchCountRef = useRef(0)
@@ -80,10 +104,11 @@ export default function RankedMatch({ user, onNavigate }) {
     const safeProfile = {
       userId: user?.id || localStorage.getItem('lexisai.user.id') || `guest-${Math.random().toString(36).slice(2, 8)}`,
       name: user?.name || 'Law Learner',
-      avatar: user?.avatarUrl || '',
+      avatar: localStorage.getItem('lexisai.user.avatar') || user?.avatarUrl || '⚖️',
     }
 
     setProfile(safeProfile)
+    setStreak(Number(localStorage.getItem(`lexisai.ranked.streak.${safeProfile.userId}`) || 0))
 
     const socket = connectRankedSocket(safeProfile)
     if (!socket) {
@@ -96,17 +121,32 @@ export default function RankedMatch({ user, onNavigate }) {
 
     function onRankSync(payload) {
       setProfile((prev) => ({ ...prev, ...payload }))
+      setIsOfflineMode(false)
     }
 
     function onQueue(payload) {
+      if (payload?.searching === false) {
+        setMode('idle')
+        setQueueMeta(null)
+        setSearchStartedAt(0)
+        setSearchElapsedMs(0)
+        setStatusText(payload?.cancelled ? 'Matchmaking cancelled.' : 'Ready for ranked battle.')
+        return
+      }
+
       setMode('searching')
       setQueueMeta(payload)
+      setSearchStartedAt(Date.now())
+      setSearchElapsedMs(0)
       setStatusText('Searching for opponent… A bot will fill in after 10 minutes if no one joins.')
     }
 
     function onFound(payload) {
       setMatchId(payload.matchId)
-      setOpponent(payload.opponent)
+      setOpponent({
+        ...payload.opponent,
+        avatar: payload?.opponent?.avatar || (payload.botMatch ? '🤖' : '⚖️'),
+      })
       setMode('found')
       setStatusText(payload.botMatch ? 'Bot fallback match found.' : 'Opponent found.')
       setProgress(`0/${payload.questionCount || QUESTION_LIMIT}`)
@@ -117,16 +157,19 @@ export default function RankedMatch({ user, onNavigate }) {
     }
 
     function onStart(payload) {
-      setMode('live')
-      setStatusText('Match started. Answer fast and accurately.')
-      setDeadlineAt(payload?.startsAt || 0)
-      setTimeLeftMs(Math.max(0, Number(payload?.startsAt || 0) - Date.now()))
+      const startsAt = Number(payload?.startsAt || Date.now() + 2200)
+      setMode('countdown')
+      setStatusText('Arena lock-in... prepare your first answer.')
+      setDeadlineAt(startsAt)
+      setPreMatchLeftMs(Math.max(0, startsAt - Date.now()))
     }
 
     function onQuestion(payload) {
+      setMode('live')
       setQuestion(payload.question)
       setProgress(payload.progress || `0/${QUESTION_LIMIT}`)
       setDeadlineAt(Number(payload.deadlineAt || 0))
+      setTimeLeftMs(Math.max(0, Number(payload.deadlineAt || 0) - Date.now()))
       setSelectedChoiceId(null)
       questionStartedAtRef.current = Date.now()
       tabSwitchCountRef.current = 0
@@ -139,6 +182,18 @@ export default function RankedMatch({ user, onNavigate }) {
       setQuestion(null)
       setDeadlineAt(0)
       setTimeLeftMs(0)
+      setSearchStartedAt(0)
+
+      const didWin = payload.winnerId && payload.winnerId === payload.me
+      const nextStreak = didWin ? streak + 1 : 0
+      setStreak(nextStreak)
+      localStorage.setItem(`lexisai.ranked.streak.${String(payload.me || profile?.userId || 'guest')}`, String(nextStreak))
+
+      const myRating = payload?.rating?.[payload.me]
+      if (myRating?.after) {
+        setProfile((prev) => ({ ...(prev || {}), rating: myRating.after }))
+      }
+
       loadLeaderboard()
     }
 
@@ -189,6 +244,22 @@ export default function RankedMatch({ user, onNavigate }) {
   }, [mode, timeLeftMs, question, submittedQuestionIds])
 
   useEffect(() => {
+    if (mode !== 'countdown' || !deadlineAt) return undefined
+    const timer = setInterval(() => {
+      setPreMatchLeftMs(Math.max(0, deadlineAt - Date.now()))
+    }, 80)
+    return () => clearInterval(timer)
+  }, [mode, deadlineAt])
+
+  useEffect(() => {
+    if (mode !== 'searching' || !searchStartedAt) return undefined
+    const timer = setInterval(() => {
+      setSearchElapsedMs(Math.max(0, Date.now() - searchStartedAt))
+    }, 300)
+    return () => clearInterval(timer)
+  }, [mode, searchStartedAt])
+
+  useEffect(() => {
     if (mode !== 'live' || !deadlineAt) return undefined
     const timer = setInterval(() => {
       setTimeLeftMs(Math.max(0, deadlineAt - Date.now()))
@@ -197,7 +268,7 @@ export default function RankedMatch({ user, onNavigate }) {
   }, [mode, deadlineAt])
 
   useEffect(() => {
-    if (mode !== 'live') return undefined
+    if (mode !== 'live' && mode !== 'countdown') return undefined
 
     const preventBack = (event) => {
       event.preventDefault()
@@ -212,7 +283,7 @@ export default function RankedMatch({ user, onNavigate }) {
   async function loadLeaderboard() {
     try {
       const data = await fetchRankedLeaderboard()
-      setLeaderboard(data?.leaderboard?.slice(0, 10) || [])
+      setLeaderboard(data?.leaderboard || [])
     } catch {
       setLeaderboard([])
     }
@@ -233,12 +304,15 @@ export default function RankedMatch({ user, onNavigate }) {
 
     setError('')
     setMode('searching')
+    setSearchStartedAt(Date.now())
+    setSearchElapsedMs(0)
+    setQueueMeta({ searching: true, timeoutMs: MATCH_FALLBACK_MS })
 
     if (fallbackTimerRef.current) window.clearTimeout(fallbackTimerRef.current)
     // 10-minute overall fallback (server bot or offline bot)
     fallbackTimerRef.current = window.setTimeout(() => {
       if (modeRef.current === 'searching') startOfflineMatch()
-    }, 600000)
+    }, MATCH_FALLBACK_MS)
 
     if (socket.connected) {
       setStatusText('Finding match… bot fallback in 10 minutes if no opponent found.')
@@ -252,6 +326,23 @@ export default function RankedMatch({ user, onNavigate }) {
         socket.emit('match:find')
       })
     }
+  }
+
+  function handleCancelMatch() {
+    if (fallbackTimerRef.current) window.clearTimeout(fallbackTimerRef.current)
+    const socket = getRankedSocket()
+    if (socket?.connected) socket.emit('match:cancel')
+    setMode('idle')
+    setQueueMeta(null)
+    setSearchStartedAt(0)
+    setSearchElapsedMs(0)
+    setStatusText('Matchmaking cancelled.')
+  }
+
+  function handleAvatarSelect(value) {
+    setProfile((prev) => ({ ...(prev || {}), avatar: value }))
+    localStorage.setItem('lexisai.user.avatar', value)
+    setShowAvatarPicker(false)
   }
 
   function buildOfflineQuestions() {
@@ -282,7 +373,7 @@ export default function RankedMatch({ user, onNavigate }) {
 
     setIsOfflineMode(true)
     setMatchId(generatedMatchId)
-    setOpponent({ userId: 'lexis-bot', name: 'Lexis Bot', avatar: null })
+    setOpponent({ userId: 'lexis-bot', name: 'Lexis Bot', avatar: '🤖', rating: Number(profile?.rating || 1000) + 20 })
     setMode('found')
     setStatusText('Bot fallback match found.')
     setProgress(`0/${QUESTION_LIMIT}`)
@@ -292,10 +383,15 @@ export default function RankedMatch({ user, onNavigate }) {
     setError('')
 
     window.setTimeout(() => {
-      setMode('live')
+      setMode('countdown')
+      setDeadlineAt(Date.now() + 2000)
+      setPreMatchLeftMs(2000)
       setStatusText('Offline ranked battle started.')
-      nextOfflineQuestion()
-    }, 600)
+      window.setTimeout(() => {
+        setMode('live')
+        nextOfflineQuestion()
+      }, 2000)
+    }, 300)
   }
 
   function nextOfflineQuestion() {
@@ -418,47 +514,130 @@ export default function RankedMatch({ user, onNavigate }) {
     return rating?.delta || 0
   }, [result, myId])
 
+  const topTen = useMemo(() => leaderboard.slice(0, 10), [leaderboard])
+  const currentUserEntry = useMemo(() => {
+    if (!myId) return null
+    return leaderboard.find((entry) => String(entry.id) === String(myId)) || null
+  }, [leaderboard, myId])
+
+  const preMatchCountdown = Math.max(1, Math.ceil(preMatchLeftMs / 1000))
+  const myRatingAfter = result?.rating?.[myId]?.after
+  const myRatingBefore = result?.rating?.[myId]?.before
+  const didRankUp = Number.isFinite(myRatingAfter) && Number.isFinite(myRatingBefore)
+    ? getTierByRating(myRatingAfter).key !== getTierByRating(myRatingBefore).key
+    : false
+
   return (
     <div className="px-4 pb-8 space-y-4">
-      <div className="rounded-3xl bg-gradient-to-br from-indigo-700 via-cyan-700 to-emerald-700 p-5 mt-2 border border-white/10 shadow-elev3">
-        <div className="text-xs text-cyan-100">Ranked 1v1 Law Arena</div>
-        <h1 className="text-xl font-bold text-white mt-1">Real-time Matchmaking</h1>
+      <div className="rounded-3xl bg-gradient-to-br from-[#181247] via-[#174677] to-[#0f6963] p-5 mt-2 border border-white/10 shadow-elev3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-xs text-cyan-100/90">Ranked 1v1 Law Arena</div>
+            <h1 className="text-xl font-black text-white mt-1 tracking-tight">Enter The Competitive Bench</h1>
+          </div>
+          <button
+            onClick={() => setShowAvatarPicker(true)}
+            className="h-11 w-11 rounded-2xl border border-white/25 bg-white/10 text-xl grid place-items-center hover:scale-105 active:scale-95 transition-transform"
+            aria-label="Open avatar picker"
+          >
+            {profile?.avatar || '⚖️'}
+          </button>
+        </div>
         <div className="mt-3 text-sm text-cyan-100">{statusText}</div>
         <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
           <span className="px-2 py-1 rounded-full bg-white/10 border border-white/20 text-cyan-100">20 questions</span>
           <span className="px-2 py-1 rounded-full bg-white/10 border border-white/20 text-cyan-100">35s each</span>
           <span className="px-2 py-1 rounded-full bg-white/10 border border-white/20 text-cyan-100">ELO +-100</span>
-          {profile?.rating ? <span className="px-2 py-1 rounded-full bg-amber-500/20 border border-amber-300/30 text-amber-100">Rating {profile.rating}</span> : null}
+          <span className="px-2 py-1 rounded-full bg-emerald-500/20 border border-emerald-300/30 text-emerald-100">+20 first win today</span>
+          <span className="px-2 py-1 rounded-full bg-violet-500/20 border border-violet-300/30 text-violet-100">Weekly rank rewards active</span>
         </div>
       </div>
 
+      <PlayerCard profile={profile} streak={streak} onAvatarClick={() => setShowAvatarPicker(true)} />
+
       {error ? <div className="text-sm text-rose-300">{error}</div> : null}
 
-      {mode === 'idle' || mode === 'searching' || mode === 'found' ? (
+      {(mode === 'idle' || mode === 'searching') ? (
         <div className="bg-md-surf border border-md-outline/60 rounded-3xl p-4 space-y-3">
-          <div className="text-sm text-md-onsurfvar">
-            Find an opponent close to your rank. If no match is found in 10 minutes, you will face an AI bot.
+          <div className="text-sm text-md-onsurfvar leading-relaxed">
+            Match with players near your rank. If none found, AI will take over.
           </div>
-          {isOfflineMode && mode === 'searching' ? <div className="text-xs text-amber-300">No realtime server — bot match will start shortly.</div> : null}
-          {queueMeta?.searching ? <div className="text-xs text-md-onsurfvar">Queue timeout: {Math.round((queueMeta.timeoutMs || 0) / 1000)}s</div> : null}
-          {opponent ? (
-            <div className="bg-md-surf2 border border-md-outline/50 rounded-2xl p-3">
-              <div className="text-xs text-md-onsurfvar">Opponent</div>
-              <div className="text-sm font-semibold text-md-onsurf mt-0.5">{opponent.name}</div>
+          {mode === 'searching' ? (
+            <div className="rounded-2xl border border-cyan-300/30 bg-cyan-500/10 px-3 py-2.5">
+              <div className="text-sm text-cyan-100 flex items-center gap-2">
+                <span className="inline-flex gap-1">
+                  <span className="typing-dot">•</span>
+                  <span className="typing-dot">•</span>
+                  <span className="typing-dot">•</span>
+                </span>
+                Searching for opponent...
+              </div>
+              <div className="mt-1 text-xs text-cyan-100/80">{formatSearchEta(searchElapsedMs)}</div>
+              <div className="text-xs text-cyan-100/70 mt-0.5">Fallback bot in {Math.round((queueMeta?.timeoutMs || MATCH_FALLBACK_MS) / 60000)} minutes.</div>
             </div>
           ) : null}
-          <button
-            onClick={handleFindMatch}
-            disabled={mode === 'searching'}
-            className="w-full h-11 rounded-xl bg-md-primary text-white font-semibold disabled:opacity-60"
-          >
-            {mode === 'searching' ? 'Searching...' : 'Find Match'}
-          </button>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={handleFindMatch}
+              disabled={mode === 'searching'}
+              className="h-11 rounded-xl bg-md-primary text-white font-semibold disabled:opacity-60 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {mode === 'searching' ? 'Searching...' : 'Find Match'}
+            </button>
+            <button
+              onClick={handleCancelMatch}
+              disabled={mode !== 'searching'}
+              className="h-11 rounded-xl bg-md-surf2 border border-md-outline/60 text-md-onsurf font-semibold disabled:opacity-60 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Cancel
+            </button>
+          </div>
+
+          {isOfflineMode && mode === 'searching' ? <div className="text-xs text-amber-300">No realtime server yet. Waiting for fallback.</div> : null}
+        </div>
+      ) : null}
+
+      {(mode === 'found' || mode === 'countdown') && opponent ? (
+        <div className="rounded-3xl border border-cyan-300/35 bg-gradient-to-br from-[#11193a] to-[#19234b] p-4 space-y-4 shadow-[0_20px_40px_rgba(14,116,144,0.15)]">
+          <div className="text-xs uppercase tracking-wide text-cyan-200/80">Match Found</div>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="text-center">
+              <div className="h-14 w-14 mx-auto rounded-2xl border border-white/20 bg-white/5 grid place-items-center text-2xl">{profile?.avatar || '⚖️'}</div>
+              <div className="text-sm font-bold text-cyan-200 mt-2 truncate">{profile?.name || 'You'}</div>
+              <div className="text-xs text-cyan-100/70">ELO {profile?.rating || 1000}</div>
+              <div className="mt-1"><RankBadge rating={profile?.rating || 1000} compact /></div>
+            </div>
+
+            <div className="text-center">
+              <div className="text-2xl font-black text-amber-300 animate-pulse">VS</div>
+              <div className="text-xs text-cyan-100/70 mt-1">{mode === 'countdown' ? `Starting in ${preMatchCountdown}` : 'Locking arena...'}</div>
+            </div>
+
+            <div className="text-center">
+              <div className="h-14 w-14 mx-auto rounded-2xl border border-white/20 bg-white/5 grid place-items-center text-2xl">{opponent?.avatar || '⚖️'}</div>
+              <div className="text-sm font-bold text-rose-200 mt-2 truncate">{opponent?.name || 'Opponent'}</div>
+              <div className="text-xs text-rose-100/70">ELO {opponent?.rating || '???'}</div>
+              <div className="mt-1"><RankBadge rating={opponent?.rating || 1000} compact /></div>
+            </div>
+          </div>
         </div>
       ) : null}
 
       {mode === 'live' && question ? (
         <div className="space-y-3">
+          <div className="flex items-center justify-between bg-md-surf border border-md-outline/60 rounded-2xl px-4 py-2.5">
+            <div className="text-center flex-1">
+              <div className="h-8 w-8 mx-auto rounded-lg border border-white/15 bg-white/5 grid place-items-center text-base">{profile?.avatar || '⚖️'}</div>
+              <div className="text-sm font-bold text-cyan-300 truncate mt-1">{profile?.name || 'You'}</div>
+            </div>
+            <div className="text-xs font-black text-amber-400 px-3">VS</div>
+            <div className="text-center flex-1">
+              <div className="h-8 w-8 mx-auto rounded-lg border border-white/15 bg-white/5 grid place-items-center text-base">{opponent?.avatar || '⚖️'}</div>
+              <div className="text-sm font-bold text-rose-300 truncate mt-1">{opponent?.name || 'Opponent'}</div>
+            </div>
+          </div>
+
           <div className="bg-md-surf border border-md-outline/60 rounded-3xl p-4">
             <div className="flex items-center justify-between text-xs text-md-onsurfvar mb-2">
               <span>{progress}</span>
@@ -496,7 +675,14 @@ export default function RankedMatch({ user, onNavigate }) {
 
       {mode === 'result' && result ? (
         <div className="space-y-4">
-          <div className="bg-md-surf border border-md-outline/60 rounded-3xl p-4">
+          <div className={`relative overflow-hidden bg-md-surf border border-md-outline/60 rounded-3xl p-4 ${result.winnerId === result.me ? 'shadow-[0_0_0_1px_rgba(52,211,153,0.35),0_0_40px_rgba(52,211,153,0.18)]' : ''}`}>
+            {result.winnerId === result.me ? (
+              <div className="absolute inset-0 pointer-events-none opacity-40">
+                <div className="absolute left-6 top-3 text-xl animate-bounce">✨</div>
+                <div className="absolute right-8 top-5 text-xl animate-bounce">🎉</div>
+                <div className="absolute left-1/3 bottom-5 text-lg animate-bounce">🏆</div>
+              </div>
+            ) : null}
             <div className="text-sm text-md-onsurfvar">Match Result</div>
             <div className="text-lg font-bold text-md-onsurf mt-1">
               {result.isDraw ? 'Draw' : result.winnerId === result.me ? 'Victory' : 'Defeat'}
@@ -513,9 +699,10 @@ export default function RankedMatch({ user, onNavigate }) {
                 <div className="text-xs text-md-onsurfvar">Time {formatMs(result.totalTimeMs?.[result.opponent?.userId])}</div>
               </div>
             </div>
-            <div className={`mt-3 text-sm font-semibold ${ratingDelta >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
-              Rank Change: {ratingDelta >= 0 ? '+' : ''}{ratingDelta}
+            <div className={`mt-3 text-lg font-black animate-pulse ${ratingDelta >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
+              {ratingDelta >= 0 ? '+' : ''}{ratingDelta} ELO
             </div>
+            {didRankUp ? <div className="mt-1 text-xs font-semibold text-amber-300 animate-pulse">Rank Up Unlocked</div> : null}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <button onClick={handleFindMatch} className="h-10 rounded-xl bg-md-primary text-white text-sm font-semibold">Play Again</button>
               <button onClick={() => onNavigate('study')} className="h-10 rounded-xl bg-md-surf2 border border-md-outline/60 text-md-onsurf text-sm font-semibold">Review Answers</button>
@@ -542,15 +729,61 @@ export default function RankedMatch({ user, onNavigate }) {
       <div className="bg-md-surf border border-md-outline/60 rounded-3xl p-4">
         <h2 className="text-base font-semibold text-md-onsurf mb-3">Leaderboard</h2>
         <div className="space-y-2">
-          {leaderboard.map((entry) => (
-            <div key={entry.id} className="flex items-center justify-between bg-md-surf2 border border-md-outline/50 rounded-xl px-3 py-2 text-sm">
-              <div className="text-md-onsurf">#{entry.rankPosition} {entry.name}</div>
-              <div className="text-md-onsurfvar">{entry.rating}</div>
-            </div>
+          {topTen.map((entry) => (
+            <LeaderboardItem
+              key={entry.id}
+              entry={entry}
+              highlighted={String(entry.id) === String(myId)}
+            />
           ))}
-          {!leaderboard.length ? <div className="text-sm text-md-onsurfvar">No ranked data yet.</div> : null}
+          {currentUserEntry && !topTen.find((item) => String(item.id) === String(currentUserEntry.id)) ? (
+            <>
+              <div className="text-[11px] text-md-onsurfvar py-1">Your Position</div>
+              <LeaderboardItem entry={currentUserEntry} highlighted />
+            </>
+          ) : null}
+
+          {!leaderboard.length ? (
+            <div className="rounded-2xl border border-md-outline/60 bg-md-surf2 p-3 text-center">
+              <div className="text-sm text-md-onsurfvar">Play your first match to get ranked.</div>
+              <button onClick={handleFindMatch} className="mt-2 h-9 px-4 rounded-xl bg-md-primary text-white text-sm font-semibold">Start Match</button>
+            </div>
+          ) : null}
         </div>
       </div>
+
+      {showAvatarPicker ? (
+        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm px-4 grid place-items-center" onClick={() => setShowAvatarPicker(false)}>
+          <div className="w-full max-w-sm rounded-3xl border border-white/15 bg-[#0d1228] p-4" onClick={(event) => event.stopPropagation()}>
+            <div className="text-sm text-cyan-100/80">Choose Avatar</div>
+            <h3 className="text-base font-bold text-white mt-0.5">Set your arena identity</h3>
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {AVATAR_PRESETS.map((avatar) => (
+                <button
+                  key={avatar.id}
+                  onClick={() => handleAvatarSelect(avatar.value)}
+                  className="rounded-2xl border border-white/15 bg-white/5 py-3 hover:scale-[1.03] active:scale-95 transition-transform"
+                >
+                  <div className="text-2xl">{avatar.value}</div>
+                  <div className="text-[11px] text-white/80 mt-1">{avatar.label}</div>
+                </button>
+              ))}
+            </div>
+            <button
+              disabled
+              className="mt-3 w-full h-10 rounded-xl border border-dashed border-white/20 text-xs text-white/50"
+            >
+              Custom upload (coming soon)
+            </button>
+            <button
+              onClick={() => setShowAvatarPicker(false)}
+              className="mt-2 w-full h-10 rounded-xl bg-md-surf2 border border-md-outline/60 text-sm text-md-onsurf"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

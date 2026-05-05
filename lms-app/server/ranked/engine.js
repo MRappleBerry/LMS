@@ -237,7 +237,18 @@ function getQueueCandidate(user) {
 
 function removeQueueUser(userId) {
   const idx = queue.findIndex((entry) => entry.userId === userId)
-  if (idx >= 0) queue.splice(idx, 1)
+  if (idx >= 0) return queue.splice(idx, 1)[0]
+  return null
+}
+
+function clearQueueEntry(entry) {
+  if (entry?.timeoutId) clearTimeout(entry.timeoutId)
+}
+
+function cancelQueuedUser(userId) {
+  const entry = removeQueueUser(userId)
+  if (entry) clearQueueEntry(entry)
+  return entry
 }
 
 function createMatch(p1, p2, options = {}) {
@@ -548,7 +559,7 @@ function initRankedEngine({ app, io }) {
     })
 
     socket.on('match:find', () => {
-      removeQueueUser(user.id)
+      cancelQueuedUser(user.id)
 
       const candidate = getQueueCandidate(user)
       if (candidate) {
@@ -595,7 +606,7 @@ function initRankedEngine({ app, io }) {
       }
 
       const timeoutId = setTimeout(() => {
-        removeQueueUser(user.id)
+        cancelQueuedUser(user.id)
 
         const bot = getOrCreateUser({
           id: `bot-${user.id}`,
@@ -651,6 +662,14 @@ function initRankedEngine({ app, io }) {
       })
     })
 
+    socket.on('match:cancel', () => {
+      cancelQueuedUser(user.id)
+      socket.emit('match:queue', {
+        searching: false,
+        cancelled: true,
+      })
+    })
+
     socket.on('answer:submit', (payload = {}) => {
       const matchId = payload.matchId
       const result = submitAnswer(matchId, user.id, payload, io)
@@ -664,7 +683,7 @@ function initRankedEngine({ app, io }) {
     })
 
     socket.on('disconnect', () => {
-      removeQueueUser(user.id)
+      cancelQueuedUser(user.id)
       socketByUser.delete(user.id)
     })
   })
