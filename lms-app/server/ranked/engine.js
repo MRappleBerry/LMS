@@ -518,6 +518,31 @@ function finishMatch(match, io) {
   })
 }
 
+function abortMatchForDisconnect(userId, io) {
+  for (const match of matches.values()) {
+    if (match.status === 'ended' || match.status === 'aborted') continue
+    if (match.player1Id !== userId && match.player2Id !== userId) continue
+
+    match.status = 'aborted'
+    match.endedAt = Date.now()
+
+    const disconnected = match.players[userId]
+    const opponentId = match.player1Id === userId ? match.player2Id : match.player1Id
+    const opponent = match.players[opponentId]
+
+    if (disconnected) disconnected.socketId = null
+
+    if (opponent?.socketId) {
+      io.to(opponent.socketId).emit('match:aborted', {
+        matchId: match.id,
+        disconnectedUserId: userId,
+        disconnectedName: disconnected?.name || 'Opponent',
+        message: `${disconnected?.name || 'Opponent'} disconnected. Match aborted.`,
+      })
+    }
+  }
+}
+
 function getLeaderboard(limit = 50) {
   return [...userStore.values()]
     .sort((a, b) => b.rating - a.rating)
@@ -684,6 +709,7 @@ function initRankedEngine({ app, io }) {
 
     socket.on('disconnect', () => {
       cancelQueuedUser(user.id)
+      abortMatchForDisconnect(user.id, io)
       socketByUser.delete(user.id)
     })
   })

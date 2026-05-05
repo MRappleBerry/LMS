@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import PlayerCard from '../components/ranked/PlayerCard'
 import RankBadge, { getTierByRating } from '../components/ranked/RankBadge'
 import LeaderboardItem from '../components/ranked/LeaderboardItem'
+import AvatarView from '../components/ranked/AvatarView'
 import { fetchRankedLeaderboard } from '../lib/rankedApi'
 import { connectRankedSocket, disconnectRankedSocket, getRankedSocket } from '../lib/rankedSocket'
 
 const QUESTION_LIMIT = 20
 const QUESTION_TIME_MS = 35000
 const MATCH_FALLBACK_MS = 600000
+const CONNECT_TIMEOUT_MS = 20000
 
 const AVATAR_PRESETS = [
   { id: 'av-law-1', label: 'Justice', value: '⚖️' },
@@ -63,6 +65,16 @@ function formatSearchEta(elapsedMs) {
   return 'Searching wider ELO range...'
 }
 
+async function warmRealtimeServer() {
+  const baseUrl = (import.meta.env.VITE_MATCH_WS_URL || '').replace(/\/$/, '')
+  if (!baseUrl) return
+  try {
+    await fetch(`${baseUrl}/health`, { method: 'GET' })
+  } catch {
+    // best-effort wake-up request only
+  }
+}
+
 export default function RankedMatch({ user, onNavigate }) {
   const [profile, setProfile] = useState(null)
   const [mode, setMode] = useState('idle')
@@ -89,12 +101,106 @@ export default function RankedMatch({ user, onNavigate }) {
   const questionStartedAtRef = useRef(0)
   const tabSwitchCountRef = useRef(0)
   const fallbackTimerRef = useRef(null)
+  const connectTimerRef = useRef(null)
   const offlineRef = useRef(null)
   const modeRef = useRef(mode)
+  const audioCtxRef = useRef(null)
+  const searchMusicRef = useRef(null)
 
   const myId = profile?.id || user?.id || null
   const meScore = result?.score?.[myId] ?? null
   const themScore = result?.score?.[result?.opponent?.userId] ?? null
+
+  function stopSearchMusic() {
+    const music = searchMusicRef.current
+    if (!music) return
+
+    if (music.intervalId) window.clearInterval(music.intervalId)
+    if (music.oscA) music.oscA.stop()
+    if (music.oscB) music.oscB.stop()
+
+    if (music.gainA) music.gainA.disconnect()
+    if (music.gainB) music.gainB.disconnect()
+    if (music.master) music.master.disconnect()
+
+    searchMusicRef.current = null
+  }
+
+  async function startSearchMusic() {
+    if (searchMusicRef.current) return true
+
+    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    if (!AudioCtx) return false
+
+    const ctx = audioCtxRef.current || new AudioCtx()
+    audioCtxRef.current = ctx
+
+    // Explicitly unlock audio on mobile browsers (iOS Safari especially)
+    if (ctx.state !== 'running') {
+      try {
+        await ctx.resume()
+      } catch {
+        return false
+      }
+    }
+
+    // Tiny one-shot unlock pulse to guarantee output route activation
+    try {
+      const unlockGain = ctx.createGain()
+      unlockGain.gain.value = 0.0001
+      unlockGain.connect(ctx.destination)
+      const unlockOsc = ctx.createOscillator()
+      unlockOsc.frequency.value = 440
+      unlockOsc.connect(unlockGain)
+      unlockOsc.start()
+      unlockOsc.stop(ctx.currentTime + 0.02)
+      window.setTimeout(() => unlockGain.disconnect(), 40)
+    } catch {
+      // continue; not fatal if unlock pulse fails
+    }
+
+    const master = ctx.createGain()
+    master.gain.value = 0.12
+    master.connect(ctx.destination)
+
+    const oscA = ctx.createOscillator()
+    oscA.type = 'sawtooth'
+    oscA.frequency.value = 392
+    const gainA = ctx.createGain()
+    gainA.gain.value = 0.09
+    oscA.connect(gainA)
+    gainA.connect(master)
+
+    const oscB = ctx.createOscillator()
+    oscB.type = 'triangle'
+    oscB.frequency.value = 523
+    const gainB = ctx.createGain()
+    gainB.gain.value = 0.05
+    oscB.connect(gainB)
+    gainB.connect(master)
+
+    oscA.start()
+    oscB.start()
+
+    const notes = [392, 440, 494, 523]
+    let noteIdx = 0
+    const intervalId = window.setInterval(() => {
+      if (!searchMusicRef.current) return
+      noteIdx = (noteIdx + 1) % notes.length
+      const next = notes[noteIdx]
+      oscA.frequency.setTargetAtTime(next, ctx.currentTime, 0.08)
+      oscB.frequency.setTargetAtTime(next * 1.25, ctx.currentTime, 0.08)
+
+      // subtle rhythmic pulse to make it clearly audible on small speakers
+      gainA.gain.cancelScheduledValues(ctx.currentTime)
+      gainA.gain.setValueAtTime(0.055, ctx.currentTime)
+      gainA.gain.linearRampToValueAtTime(0.11, ctx.currentTime + 0.08)
+      gainA.gain.linearRampToValueAtTime(0.055, ctx.currentTime + 0.24)
+    }, 520)
+
+    searchMusicRef.current = { oscA, oscB, gainA, gainB, master, intervalId }
+    return true
+  }
 
   useEffect(() => {
     modeRef.current = mode
@@ -126,6 +232,7 @@ export default function RankedMatch({ user, onNavigate }) {
 
     function onQueue(payload) {
       if (payload?.searching === false) {
+        stopSearchMusic()
         setMode('idle')
         setQueueMeta(null)
         setSearchStartedAt(0)
@@ -139,9 +246,11 @@ export default function RankedMatch({ user, onNavigate }) {
       setSearchStartedAt(Date.now())
       setSearchElapsedMs(0)
       setStatusText('Searching for opponent… A bot will fill in after 10 minutes if no one joins.')
+      startSearchMusic()
     }
 
     function onFound(payload) {
+      stopSearchMusic()
       setMatchId(payload.matchId)
       setOpponent({
         ...payload.opponent,
@@ -157,6 +266,7 @@ export default function RankedMatch({ user, onNavigate }) {
     }
 
     function onStart(payload) {
+      stopSearchMusic()
       const startsAt = Number(payload?.startsAt || Date.now() + 2200)
       setMode('countdown')
       setStatusText('Arena lock-in... prepare your first answer.')
@@ -176,6 +286,7 @@ export default function RankedMatch({ user, onNavigate }) {
     }
 
     function onMatchEnd(payload) {
+      stopSearchMusic()
       setMode('result')
       setResult(payload)
       setStatusText(payload.isDraw ? 'Draw game.' : payload.winnerId === payload.me ? 'You won.' : 'You lost.')
@@ -197,6 +308,23 @@ export default function RankedMatch({ user, onNavigate }) {
       loadLeaderboard()
     }
 
+    function onMatchAborted(payload) {
+      stopSearchMusic()
+      setMode('idle')
+      setQueueMeta(null)
+      setSearchStartedAt(0)
+      setSearchElapsedMs(0)
+      setMatchId('')
+      setQuestion(null)
+      setDeadlineAt(0)
+      setTimeLeftMs(0)
+      setSelectedChoiceId(null)
+      setSubmittedQuestionIds({})
+      setOpponent(null)
+      setStatusText(payload?.message || 'Opponent disconnected. Match aborted.')
+      setError('')
+    }
+
     function onMatchError(payload) {
       setError(payload?.error || 'Match error occurred.')
     }
@@ -212,6 +340,7 @@ export default function RankedMatch({ user, onNavigate }) {
     socket.on('match:start', onStart)
     socket.on('question:send', onQuestion)
     socket.on('match:end', onMatchEnd)
+    socket.on('match:aborted', onMatchAborted)
     socket.on('match:error', onMatchError)
     socket.on('connect_error', onConnectError)
 
@@ -227,11 +356,14 @@ export default function RankedMatch({ user, onNavigate }) {
       socket.off('match:start', onStart)
       socket.off('question:send', onQuestion)
       socket.off('match:end', onMatchEnd)
+      socket.off('match:aborted', onMatchAborted)
       socket.off('match:error', onMatchError)
       socket.off('connect_error', onConnectError)
       document.removeEventListener('visibilitychange', onVisibility)
+      stopSearchMusic()
       disconnectRankedSocket()
       if (fallbackTimerRef.current) window.clearTimeout(fallbackTimerRef.current)
+      if (connectTimerRef.current) window.clearTimeout(connectTimerRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
@@ -293,7 +425,7 @@ export default function RankedMatch({ user, onNavigate }) {
     loadLeaderboard()
   }, [])
 
-  function handleFindMatch() {
+  async function handleFindMatch() {
     const socket = getRankedSocket()
 
     // No server configured at all — go straight to offline bot
@@ -307,6 +439,8 @@ export default function RankedMatch({ user, onNavigate }) {
     setSearchStartedAt(Date.now())
     setSearchElapsedMs(0)
     setQueueMeta({ searching: true, timeoutMs: MATCH_FALLBACK_MS })
+    await startSearchMusic()
+    await warmRealtimeServer()
 
     if (fallbackTimerRef.current) window.clearTimeout(fallbackTimerRef.current)
     // 10-minute overall fallback (server bot or offline bot)
@@ -320,16 +454,36 @@ export default function RankedMatch({ user, onNavigate }) {
     } else {
       // Server is waking up (Render free tier cold start ~50s) — wait for connection
       setStatusText('Connecting to server… this may take up to 60 seconds on first load.')
+      setError('')
+
+      if (connectTimerRef.current) window.clearTimeout(connectTimerRef.current)
+      connectTimerRef.current = window.setTimeout(() => {
+        if (modeRef.current !== 'searching' || socket.connected) return
+        setError('Still connecting to realtime server... keep this screen open for a few seconds.')
+      }, CONNECT_TIMEOUT_MS)
+
+      socket.connect()
+
       socket.once('connect', () => {
+        if (connectTimerRef.current) window.clearTimeout(connectTimerRef.current)
         if (modeRef.current !== 'searching') return
+        setIsOfflineMode(false)
+        setError('')
         setStatusText('Finding match… bot fallback in 10 minutes if no opponent found.')
         socket.emit('match:find')
+      })
+
+      socket.once('connect_error', () => {
+        if (modeRef.current !== 'searching') return
+        setError('Realtime server not ready yet. Retrying automatically...')
       })
     }
   }
 
   function handleCancelMatch() {
+    stopSearchMusic()
     if (fallbackTimerRef.current) window.clearTimeout(fallbackTimerRef.current)
+    if (connectTimerRef.current) window.clearTimeout(connectTimerRef.current)
     const socket = getRankedSocket()
     if (socket?.connected) socket.emit('match:cancel')
     setMode('idle')
@@ -358,6 +512,7 @@ export default function RankedMatch({ user, onNavigate }) {
   }
 
   function startOfflineMatch() {
+    stopSearchMusic()
     const generatedMatchId = `offline-${Date.now()}`
     const questions = buildOfflineQuestions()
     offlineRef.current = {
@@ -540,7 +695,12 @@ export default function RankedMatch({ user, onNavigate }) {
             className="h-11 w-11 rounded-2xl border border-white/25 bg-white/10 text-xl grid place-items-center hover:scale-105 active:scale-95 transition-transform"
             aria-label="Open avatar picker"
           >
-            {profile?.avatar || '⚖️'}
+            <AvatarView
+              avatar={profile?.avatar}
+              className="h-11 w-11 rounded-2xl overflow-hidden grid place-items-center"
+              textClassName="text-xl"
+              alt="Current avatar"
+            />
           </button>
         </div>
         <div className="mt-3 text-sm text-cyan-100">{statusText}</div>
@@ -603,7 +763,12 @@ export default function RankedMatch({ user, onNavigate }) {
           <div className="text-xs uppercase tracking-wide text-cyan-200/80">Match Found</div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div className="text-center">
-              <div className="h-14 w-14 mx-auto rounded-2xl border border-white/20 bg-white/5 grid place-items-center text-2xl">{profile?.avatar || '⚖️'}</div>
+              <AvatarView
+                avatar={profile?.avatar}
+                className="h-14 w-14 mx-auto rounded-2xl border border-white/20 bg-white/5 overflow-hidden grid place-items-center"
+                textClassName="text-2xl"
+                alt="Your avatar"
+              />
               <div className="text-sm font-bold text-cyan-200 mt-2 truncate">{profile?.name || 'You'}</div>
               <div className="text-xs text-cyan-100/70">ELO {profile?.rating || 1000}</div>
               <div className="mt-1"><RankBadge rating={profile?.rating || 1000} compact /></div>
@@ -615,7 +780,12 @@ export default function RankedMatch({ user, onNavigate }) {
             </div>
 
             <div className="text-center">
-              <div className="h-14 w-14 mx-auto rounded-2xl border border-white/20 bg-white/5 grid place-items-center text-2xl">{opponent?.avatar || '⚖️'}</div>
+              <AvatarView
+                avatar={opponent?.avatar}
+                className="h-14 w-14 mx-auto rounded-2xl border border-white/20 bg-white/5 overflow-hidden grid place-items-center"
+                textClassName="text-2xl"
+                alt="Opponent avatar"
+              />
               <div className="text-sm font-bold text-rose-200 mt-2 truncate">{opponent?.name || 'Opponent'}</div>
               <div className="text-xs text-rose-100/70">ELO {opponent?.rating || '???'}</div>
               <div className="mt-1"><RankBadge rating={opponent?.rating || 1000} compact /></div>
@@ -628,12 +798,22 @@ export default function RankedMatch({ user, onNavigate }) {
         <div className="space-y-3">
           <div className="flex items-center justify-between bg-md-surf border border-md-outline/60 rounded-2xl px-4 py-2.5">
             <div className="text-center flex-1">
-              <div className="h-8 w-8 mx-auto rounded-lg border border-white/15 bg-white/5 grid place-items-center text-base">{profile?.avatar || '⚖️'}</div>
+              <AvatarView
+                avatar={profile?.avatar}
+                className="h-8 w-8 mx-auto rounded-lg border border-white/15 bg-white/5 overflow-hidden grid place-items-center"
+                textClassName="text-base"
+                alt="Your avatar"
+              />
               <div className="text-sm font-bold text-cyan-300 truncate mt-1">{profile?.name || 'You'}</div>
             </div>
             <div className="text-xs font-black text-amber-400 px-3">VS</div>
             <div className="text-center flex-1">
-              <div className="h-8 w-8 mx-auto rounded-lg border border-white/15 bg-white/5 grid place-items-center text-base">{opponent?.avatar || '⚖️'}</div>
+              <AvatarView
+                avatar={opponent?.avatar}
+                className="h-8 w-8 mx-auto rounded-lg border border-white/15 bg-white/5 overflow-hidden grid place-items-center"
+                textClassName="text-base"
+                alt="Opponent avatar"
+              />
               <div className="text-sm font-bold text-rose-300 truncate mt-1">{opponent?.name || 'Opponent'}</div>
             </div>
           </div>
