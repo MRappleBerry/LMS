@@ -1,9 +1,11 @@
 import RankBadge, { getNextTier, getTierProgress } from './RankBadge'
+import AvatarView from './AvatarView'
 
-function safeRecord(profile = {}) {
+function safeRecord(profile) {
+  const safeProfile = profile || {}
   return {
-    wins: Number(profile.wins || 0),
-    losses: Number(profile.losses || 0),
+    wins: Number(safeProfile.wins || 0),
+    losses: Number(safeProfile.losses || 0),
   }
 }
 
@@ -22,7 +24,12 @@ export default function PlayerCard({ profile, streak = 0, onAvatarClick }) {
             className="h-12 w-12 shrink-0 rounded-2xl bg-white/5 border border-white/15 text-xl grid place-items-center hover:scale-105 active:scale-95 transition-transform"
             aria-label="Choose avatar"
           >
-            {profile?.avatar || '⚖️'}
+            <AvatarView
+              avatar={profile?.avatar}
+              className="h-12 w-12 rounded-2xl overflow-hidden grid place-items-center"
+              textClassName="text-xl"
+              alt="Player avatar"
+            />
           </button>
           <div className="min-w-0 flex-1">
             <div className="text-xs text-cyan-200/80">Player Identity</div>
