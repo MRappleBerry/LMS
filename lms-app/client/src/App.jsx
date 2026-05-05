@@ -90,6 +90,10 @@ function parsePath(pathname) {
     }
   }
 
+  if (pathname === '/learn') {
+    return { type: 'learn', pathname }
+  }
+
   const viewRoutes = {
     '/dashboard': 'dashboard',
     '/chat': 'chat',
@@ -103,13 +107,6 @@ function parsePath(pathname) {
   }
 
   return {
-    const learnMatch = pathname.match(/^\/learn$/)
-    if (learnMatch) {
-      return {
-        type: 'learn',
-        pathname,
-      }
-    }
     type: 'view',
     view: viewRoutes[pathname] || 'reader',
     pathname,
