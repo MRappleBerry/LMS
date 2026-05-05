@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Merriweather:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Cormorant+Garamond:wght@600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -8,9 +8,9 @@
   *, *::before, *::after { box-sizing: border-box; }
 
   body {
-    background-color: #07071a;
-    color: #e4e4f8;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: #060d1c;
+    color: #e5ecfa;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior: none;
@@ -116,7 +116,7 @@
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
   .no-select { user-select: none; -webkit-user-select: none; }
-  .font-reader { font-family: 'Merriweather', Georgia, serif; }
+  .font-reader { font-family: 'Cormorant Garamond', Georgia, serif; }
 }
 
 ::selection {

@@ -130,6 +130,7 @@ export default function App() {
   const [readerNavOpen, setReaderNavOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchText, setSearchText] = useState('')
+  const [readerFocusMode, setReaderFocusMode] = useState(false)
   const [authLoading, setAuthLoading] = useState(true)
   const [user, setUser] = useState(null)
   const fabRef = useRef(null)
@@ -139,6 +140,21 @@ export default function App() {
     if (nextRoute.type === 'reader' || nextRoute.type === 'subject') return true
     return nextRoute.type === 'view' && nextRoute.view === 'dashboard'
   }
+
+  useEffect(() => {
+    function onReaderFocusChange(event) {
+      setReaderFocusMode(Boolean(event?.detail?.enabled))
+    }
+
+    window.addEventListener('lexisai:reader-focus-mode', onReaderFocusChange)
+    return () => window.removeEventListener('lexisai:reader-focus-mode', onReaderFocusChange)
+  }, [])
+
+  useEffect(() => {
+    if (route.type !== 'reader' && readerFocusMode) {
+      setReaderFocusMode(false)
+    }
+  }, [route.type, readerFocusMode])
 
   useEffect(() => {
     if (window.location.pathname === '/') {
@@ -231,6 +247,7 @@ export default function App() {
   const activeView = ['reader', 'year', 'subject', 'legacy-reader'].includes(route.type) ? 'reader' : route.view
   const subjectMeta = route.type === 'reader' ? getSubjectMeta(route.subject) : null
   const isAuthRoute = route.type === 'login'
+  const hideReaderChrome = route.type === 'reader' && readerFocusMode
 
   const navigatePath = useCallback((path) => {
     if (window.location.pathname === path) return
@@ -259,9 +276,22 @@ export default function App() {
 
   /* Navigate with a re-key so view-enter animation fires every time */
   const navigate = useCallback((id) => {
+    function readLastReaderPath() {
+      try {
+        const raw = localStorage.getItem('lexisai.last.reader')
+        const parsed = raw ? JSON.parse(raw) : null
+        const path = parsed?.path
+        if (typeof path === 'string' && path.startsWith('/subject/')) return path
+      } catch {
+        // noop
+      }
+      return null
+    }
+
     if (id === 'more') { setDrawerOpen(true); return }
     if (id === 'reader') {
-      navigatePath('/year/1')
+      const resumePath = readLastReaderPath()
+      navigatePath(resumePath || '/year/1')
     } else {
       navigatePath(buildPathFromView(id))
     }
@@ -278,7 +308,7 @@ export default function App() {
   const fab = FAB_CONFIG[activeView]
 
   const views = useMemo(() => ({
-    dashboard: <Dashboard onNavigate={navigate} user={user} />,
+    dashboard: <Dashboard onNavigate={navigate} onNavigatePath={navigatePath} user={user} />,
     chat:      <ChatView />,
     cases:     <CaseLibrary />,
     study:     <StudyMode />,
@@ -287,7 +317,7 @@ export default function App() {
     notes:     <Notes />,
     modules:   <ModuleGenerator />,
     settings:  <Settings user={user} onLogout={handleLogout} />,
-  }), [navigate, user, handleLogout])
+  }), [navigate, navigatePath, user, handleLogout])
 
   const quickRoutes = useMemo(() => ([
     { id: 'dashboard', label: 'Home' },
@@ -335,7 +365,7 @@ export default function App() {
   return (
     <div className="fixed inset-0 bg-md-bg text-md-onsurf overflow-hidden">
       {/* Top App Bar */}
-      {!isAuthRoute && (
+      {!isAuthRoute && !hideReaderChrome && (
         <TopAppBar
           activeView={activeView}
           routeType={route.type}
@@ -351,7 +381,7 @@ export default function App() {
       {/* Scrollable content between top bar and bottom nav */}
       <main
         className={`absolute inset-x-0 scrollbar-hide ${route.type === 'reader' ? 'overflow-hidden' : 'overflow-y-auto'}`}
-        style={{ top: isAuthRoute ? 0 : 56, bottom: isAuthRoute ? 0 : 64 }}
+        style={{ top: isAuthRoute || hideReaderChrome ? 0 : 56, bottom: isAuthRoute || hideReaderChrome ? 0 : 64 }}
       >
         <div key={viewKey} className={`animate-view-in ${route.type === 'reader' ? 'h-full min-h-0' : 'min-h-full'}`}>
           {route.type === 'login'
@@ -383,7 +413,7 @@ export default function App() {
       </main>
 
       {/* FAB — only for views that have one */}
-      {!isAuthRoute && fab && (
+      {!isAuthRoute && !hideReaderChrome && fab && (
         <button
           ref={fabRef}
           onClick={handleFab}
@@ -396,10 +426,10 @@ export default function App() {
       )}
 
       {/* Bottom Navigation */}
-      {!isAuthRoute && <BottomNav activeView={activeView} onNavigate={navigate} />}
+      {!isAuthRoute && !hideReaderChrome && <BottomNav activeView={activeView} onNavigate={navigate} />}
 
       {/* Drawer */}
-      {!isAuthRoute && (
+      {!isAuthRoute && !hideReaderChrome && (
         <Drawer
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}

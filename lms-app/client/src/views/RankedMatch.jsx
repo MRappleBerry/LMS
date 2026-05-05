@@ -110,6 +110,7 @@ export default function RankedMatch({ user, onNavigate }) {
   const [preMatchLeftMs, setPreMatchLeftMs] = useState(0)
   const [toast, setToast] = useState(null)
   const [disconnectNotice, setDisconnectNotice] = useState('')
+  const [liveScore, setLiveScore] = useState({ me: 0, them: 0 })
 
   const questionStartedAtRef = useRef(0)
   const tabSwitchCountRef = useRef(0)
@@ -290,6 +291,7 @@ export default function RankedMatch({ user, onNavigate }) {
       setSelectedChoiceId(null)
       setResult(null)
       setError('')
+      setLiveScore({ me: 0, them: 0 })
     }
 
     function onStart(payload) {
@@ -310,6 +312,13 @@ export default function RankedMatch({ user, onNavigate }) {
       setSelectedChoiceId(null)
       questionStartedAtRef.current = Date.now()
       tabSwitchCountRef.current = 0
+      const scorePayload = payload?.score
+      if (scorePayload && myId && payload?.opponent?.userId) {
+        setLiveScore({
+          me: Number(scorePayload[myId] || 0),
+          them: Number(scorePayload[payload.opponent.userId] || 0),
+        })
+      }
     }
 
     function onMatchEnd(payload) {
@@ -321,6 +330,10 @@ export default function RankedMatch({ user, onNavigate }) {
       setDeadlineAt(0)
       setTimeLeftMs(0)
       setSearchStartedAt(0)
+      setLiveScore({
+        me: Number(payload?.score?.[payload?.me] || 0),
+        them: Number(payload?.score?.[payload?.opponent?.userId] || 0),
+      })
 
       const didWin = payload.winnerId && payload.winnerId === payload.me
       const nextStreak = didWin ? streak + 1 : 0
@@ -567,6 +580,7 @@ export default function RankedMatch({ user, onNavigate }) {
     setSubmittedQuestionIds({})
     setResult(null)
     setError('')
+    setLiveScore({ me: 0, them: 0 })
 
     window.setTimeout(() => {
       setMode('countdown')
@@ -668,6 +682,7 @@ export default function RankedMatch({ user, onNavigate }) {
       const botCorrect = Math.random() < 0.6
       if (botCorrect) state.botScore += 1
       state.botTimeMs += botElapsed
+      setLiveScore({ me: state.myScore, them: state.botScore })
 
       setSubmittedQuestionIds((prev) => ({ ...prev, [question.id]: true }))
       window.setTimeout(() => {
@@ -854,6 +869,18 @@ export default function RankedMatch({ user, onNavigate }) {
 
       {mode === 'live' && question ? (
         <div className="space-y-3">
+          <div className="rounded-2xl border border-white/10 bg-[#121a2f] px-4 py-2.5 flex items-center justify-between">
+            <div className="text-center">
+              <div className="text-[10px] uppercase tracking-wider text-cyan-200/60">You</div>
+              <div className="text-lg font-black text-cyan-300">{liveScore.me}</div>
+            </div>
+            <div className="text-xs text-amber-300 font-semibold">Live Score</div>
+            <div className="text-center">
+              <div className="text-[10px] uppercase tracking-wider text-rose-200/60">Opponent</div>
+              <div className="text-lg font-black text-rose-300">{liveScore.them}</div>
+            </div>
+          </div>
+
           <div className="flex items-center justify-between bg-md-surf border border-md-outline/60 rounded-2xl px-4 py-2.5">
             <div className="text-center flex-1">
               <AvatarView

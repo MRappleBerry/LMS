@@ -7,6 +7,9 @@ import ChapterSidebar from '../reader/ChapterSidebar'
 import ReaderContent from '../reader/ReaderContent'
 import AIAssistantPanel from '../reader/AIAssistantPanel'
 
+const READER_FOCUS_KEY = 'lexisai.reader.focus-mode'
+const READER_FONT_KEY = 'lexisai.reader.font-scale'
+
 function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, onCloseMobileNav }) {
   const [years, setYears] = useState([])
   const [subjects, setSubjects] = useState([])
@@ -22,6 +25,17 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
   const [yearFilter, setYearFilter] = useState('All')
   const [capabilities, setCapabilities] = useState({ canUseQuiz: true, canUseBarExam: true, canUseAI: true })
   const [access, setAccess] = useState(null)
+  const [focusMode, setFocusMode] = useState(() => {
+    try { return localStorage.getItem(READER_FOCUS_KEY) === 'true' } catch { return false }
+  })
+  const [fontScale, setFontScale] = useState(() => {
+    try {
+      const raw = Number(localStorage.getItem(READER_FONT_KEY))
+      return Number.isFinite(raw) && raw >= 0.9 && raw <= 1.3 ? raw : 1
+    } catch {
+      return 1
+    }
+  })
 
   const { addHighlight, markSectionRead, recordQuizResult, getLearningInsights, isSectionRead } = useReaderState()
 
@@ -130,6 +144,21 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
   useEffect(() => {
     document.documentElement.style.setProperty('--reader-progress', `${progress}%`)
   }, [progress])
+
+  useEffect(() => {
+    try { localStorage.setItem(READER_FOCUS_KEY, String(focusMode)) } catch { /* noop */ }
+    window.dispatchEvent(new CustomEvent('lexisai:reader-focus-mode', { detail: { enabled: focusMode } }))
+  }, [focusMode])
+
+  useEffect(() => {
+    return () => {
+      window.dispatchEvent(new CustomEvent('lexisai:reader-focus-mode', { detail: { enabled: false } }))
+    }
+  }, [])
+
+  useEffect(() => {
+    try { localStorage.setItem(READER_FONT_KEY, String(fontScale)) } catch { /* noop */ }
+  }, [fontScale])
 
   if (!resolvedSubjectMeta) {
     const fallback = getDefaultRoute()
@@ -262,6 +291,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
 
   return (
     <div className="h-full min-h-0 flex overflow-hidden">
+      {!focusMode && (
       <ChapterSidebar
         subjectMeta={resolvedSubjectMeta}
         chapterId={chapterId}
@@ -277,8 +307,9 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
         subjects={subjects}
         yearOptions={years}
       />
+      )}
 
-      {mobileNavOpen && (
+      {mobileNavOpen && !focusMode && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <ChapterSidebar
             subjectMeta={resolvedSubjectMeta}
@@ -325,14 +356,19 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
           )}
           <div className="shrink-0 px-4 py-2 border-b border-md-outline/40 flex items-center justify-between">
             <button
-              onClick={() => onNavigatePath('/dashboard')}
+              onClick={() => onNavigatePath(`/subject/${subject}`)}
               className="flex items-center gap-1.5 text-xs text-md-onsurfvar hover:text-md-onsurf transition-colors"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M15 18l-6-6 6-6"/>
               </svg>
-              Dashboard
+              Back
             </button>
+            <div className="hidden md:flex items-center bg-md-surf2 border border-md-outline/50 rounded-xl px-2 py-1 gap-2 text-xs text-md-onsurfvar">
+              <span>{resolvedSubjectMeta.title}</span>
+              <span>•</span>
+              <span className="text-amber-300 font-semibold">{Math.round(progress)}%</span>
+            </div>
             <div className="flex items-center bg-md-surf2 border border-md-outline/50 rounded-xl p-1 gap-1 text-xs">
               <button
                 onClick={() => setBarExamMode(false)}
@@ -347,6 +383,27 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
               >
                 Bar Mode
               </button>
+                <button
+                  onClick={() => setFontScale(v => Math.max(0.9, Number((v - 0.05).toFixed(2))))}
+                  className="px-2 py-1 rounded-lg text-md-onsurfvar hover:text-md-onsurf"
+                  title="Decrease font size"
+                >
+                  A-
+                </button>
+                <button
+                  onClick={() => setFontScale(v => Math.min(1.3, Number((v + 0.05).toFixed(2))))}
+                  className="px-2 py-1 rounded-lg text-md-onsurfvar hover:text-md-onsurf"
+                  title="Increase font size"
+                >
+                  A+
+                </button>
+                <button
+                  onClick={() => setFocusMode(v => !v)}
+                  className={`px-2.5 py-1 rounded-lg ${focusMode ? 'bg-amber-500/20 text-amber-300' : 'text-md-onsurfvar hover:text-md-onsurf'}`}
+                  title="Toggle focus mode"
+                >
+                  Focus
+                </button>
             </div>
           </div>
           {!capabilities.canUseBarExam && (
@@ -376,11 +433,14 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
               onRequestPractice={handlePractice}
               onQuizResult={recordQuizResult}
               featureFlags={capabilities}
+              fontScale={fontScale}
+              focusMode={focusMode}
             />
           </div>
         </div>
       )}
 
+      {!focusMode && (
       <AIAssistantPanel
         subject={subject}
         chapterId={chapterId}
@@ -390,6 +450,7 @@ function ReaderPageInner({ subject, chapterId, onNavigatePath, mobileNavOpen, on
         learningInsights={learningInsights}
         canUseAI={capabilities.canUseAI}
       />
+      )}
 
       {selection?.text && (
         <div className="fixed z-50 bottom-24 right-4 lg:right-[390px] bg-md-surf2 border border-md-outline/60 rounded-2xl shadow-elev3 w-[320px] p-3 animate-scale-in">

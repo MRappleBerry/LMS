@@ -43,6 +43,8 @@ function ReaderContentBase({
   onRequestPractice,
   onQuizResult,
   featureFlags,
+  fontScale = 1,
+  focusMode = false,
 }) {
   const { toggleBookmark, isBookmarked, getHighlights } = useReaderState()
   const containerRef = useRef(null)
@@ -144,6 +146,24 @@ function ReaderContentBase({
     onQuizResult?.(sectionKey, correct)
   }
 
+  const activeIndex = visibleSections.findIndex(sec => sec.id === activeSectionId)
+  const hasPrev = activeIndex > 0
+  const hasNext = activeIndex >= 0 && activeIndex < visibleSections.length - 1
+
+  function jumpToSectionByIndex(nextIndex) {
+    const target = visibleSections[nextIndex]
+    if (!target) return
+    const el = document.getElementById(`sec-${target.id}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setActiveSectionId(target.id)
+    onActiveSectionChange(target.id)
+  }
+
+  const contentStyle = {
+    fontSize: `${1.06 * fontScale}rem`,
+    lineHeight: `${2 * Math.max(1, fontScale * 0.95)}rem`,
+  }
+
   return (
     <section className="flex-1 min-w-0 relative h-full">
       <div className="absolute top-0 left-0 right-0 h-1 bg-md-surf3 z-20">
@@ -154,9 +174,9 @@ function ReaderContentBase({
         ref={containerRef}
         onMouseUp={handleMouseUp}
         onScroll={handleScroll}
-        className="h-full overflow-y-auto px-5 md:px-10 py-8 md:py-10"
+        className={`h-full overflow-y-auto px-5 py-8 md:py-10 ${focusMode ? 'md:px-14' : 'md:px-10'}`}
       >
-        <article className="max-w-3xl mx-auto animate-fade-in">
+        <article className={`${focusMode ? 'max-w-4xl' : 'max-w-3xl'} mx-auto animate-fade-in pb-24`}>
           <header className="mb-8 pb-6 border-b border-md-outline/40">
             <div className="text-xs uppercase tracking-[0.22em] text-md-onsurfvar">{subject}</div>
             <h1 className="mt-2 text-3xl md:text-4xl font-semibold text-md-onsurf font-reader leading-tight">
@@ -207,8 +227,17 @@ function ReaderContentBase({
                     }`}>Bar Frequency: {sec.barFrequency}</span>
                   </div>
 
-                  <div className="text-[1.06rem] leading-8 text-md-onsurf/95 font-reader whitespace-pre-line">
+                  <div className="text-md-onsurf/95 font-reader whitespace-pre-line" style={contentStyle}>
                     {renderWithHighlights(sec.content, highlights)}
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => onRequestPractice?.(sec)}
+                      className="px-3 py-1.5 text-xs rounded-lg bg-amber-500/15 border border-amber-400/30 text-amber-200 hover:bg-amber-500/25"
+                    >
+                      AI Summary
+                    </button>
                   </div>
 
                   {barExamMode && sec.barExam && (
@@ -301,6 +330,28 @@ function ReaderContentBase({
             })}
           </div>
         </article>
+      </div>
+
+      <div className="absolute bottom-0 left-0 right-0 z-30 border-t border-md-outline/50 bg-[#0f1627]/90 backdrop-blur px-4 py-2.5">
+        <div className="max-w-4xl mx-auto flex items-center gap-2">
+          <button
+            onClick={() => jumpToSectionByIndex(activeIndex - 1)}
+            disabled={!hasPrev}
+            className="h-10 px-4 rounded-xl border border-md-outline/60 bg-md-surf2 text-xs font-semibold text-md-onsurfvar disabled:opacity-40"
+          >
+            Previous Lesson
+          </button>
+          <div className="flex-1 text-center text-[11px] text-md-onsurfvar truncate">
+            {activeSectionId ? `Section ${activeSectionId}` : 'Start reading'}
+          </div>
+          <button
+            onClick={() => jumpToSectionByIndex(activeIndex + 1)}
+            disabled={!hasNext}
+            className="h-10 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black text-xs font-bold disabled:opacity-40"
+          >
+            Next Lesson
+          </button>
+        </div>
       </div>
     </section>
   )

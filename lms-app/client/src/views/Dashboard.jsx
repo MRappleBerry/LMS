@@ -1,318 +1,177 @@
-import { useEffect, useState } from 'react'
-import { fetchWeeklyChallenge } from '../lib/weeklyChallengeApi'
+import { useEffect, useMemo, useState } from 'react'
+import { fetchSubjectsByYearWithAccess } from '../lib/curriculumApi'
 
-const YEAR_LEVELS = [
-  {
-    id: '1st-year', label: '1st Year', color: 'from-blue-600 to-cyan-500',
-    focus: 'Foundations of legal method and core public law.',
-    modules: [
-      { name: 'Introduction to Philippine Law', subject: 'Legal Foundations', lessons: 12, progress: 68 },
-      { name: 'Persons and Family Relations',   subject: 'Civil Law',          lessons: 18, progress: 74 },
-      { name: 'Constitutional Law I',           subject: 'Public Law',         lessons: 16, progress: 81 },
-      { name: 'Statutory Construction',         subject: 'Legal Method',       lessons: 10, progress: 59 },
-    ],
-  },
-  {
-    id: '2nd-year', label: '2nd Year', color: 'from-violet-600 to-indigo-500',
-    focus: 'Doctrine depth across obligations, rights, and procedure.',
-    modules: [
-      { name: 'Obligations and Contracts', subject: 'Civil Law',        lessons: 22, progress: 77 },
-      { name: 'Constitutional Law II',     subject: 'Public Law',       lessons: 15, progress: 71 },
-      { name: 'Criminal Law I',            subject: 'Criminal Law',     lessons: 20, progress: 84 },
-      { name: 'Legal Research & Writing',  subject: 'Skills Lab',       lessons: 9,  progress: 65 },
-    ],
-  },
-  {
-    id: '3rd-year', label: '3rd Year', color: 'from-emerald-600 to-teal-500',
-    focus: 'Advanced litigation, commercial law, and evidence.',
-    modules: [
-      { name: 'Evidence',            subject: 'Remedial Law',    lessons: 14, progress: 72 },
-      { name: 'Corporation Law',     subject: 'Commercial Law',  lessons: 17, progress: 63 },
-      { name: 'Criminal Procedure',  subject: 'Remedial Law',    lessons: 13, progress: 79 },
-      { name: 'Property',            subject: 'Civil Law',       lessons: 19, progress: 70 },
-    ],
-  },
-  {
-    id: '4th-year', label: '4th Year', color: 'from-amber-500 to-orange-500',
-    focus: 'Bar-focused integration and practice readiness.',
-    modules: [
-      { name: 'Taxation Law Review',    subject: 'Tax Law',    lessons: 21, progress: 61 },
-      { name: 'Labor Law Review',       subject: 'Labor Law',  lessons: 18, progress: 75 },
-      { name: 'Practice Court',         subject: 'Advocacy',   lessons: 8,  progress: 88 },
-      { name: 'Political Law Review',   subject: 'Bar Review', lessons: 24, progress: 67 },
-    ],
-  },
-]
+const READER_STATE_KEY = 'lexisai.reader.state.v1'
+const LAST_READER_KEY = 'lexisai.last.reader'
 
-const QUICK_ACTIONS = [
-  { icon: '🤖', label: 'AI Assistant', desc: 'Ask legal questions', view: 'chat',  grad: 'from-indigo-600/20 to-violet-600/20', border: 'border-indigo-500/20' },
-  { icon: '📚', label: 'Case Library', desc: '1,245 cases',        view: 'cases', grad: 'from-blue-600/20 to-cyan-600/20',    border: 'border-blue-500/20'   },
-  { icon: '⚔', label: 'Ranked Match', desc: 'Live 1v1 challenge',  view: 'ranked', grad: 'from-emerald-600/20 to-cyan-600/20', border: 'border-emerald-500/20' },
-  { icon: '🧠', label: 'Study Mode',   desc: '82% mastery',        view: 'study', grad: 'from-emerald-600/20 to-teal-600/20', border: 'border-emerald-500/20'},
-  { icon: '🎓', label: 'AI Modules',   desc: 'Generate curricula', view: 'modules',grad: 'from-violet-600/20 to-purple-600/20',border: 'border-violet-500/20' },
-]
-
-const STATS = [
-  { label: 'Cases',   value: '87',     color: 'text-indigo-400', icon: '📖' },
-  { label: 'Mastery', value: '82%',    color: 'text-emerald-400',icon: '🏆' },
-  { label: 'Streak',  value: '12🔥',   color: 'text-amber-400',  icon: '⚡' },
-  { label: 'Hours',   value: '4h 28m', color: 'text-cyan-400',   icon: '⏱' },
-]
-
-const RECENT = [
-  { icon: '⚖️', title: 'Angara v. Electoral Commission', tag: 'Constitutional Law', time: '2h ago' },
-  { icon: '📝', title: 'Notes: Judicial Review Doctrine', tag: 'Notes',             time: '5h ago' },
-  { icon: '❓', title: 'Quiz: Criminal Law I — 9/10',     tag: 'Study Mode',        time: 'Yesterday' },
-]
-
-function StatCard({ label, value, color, icon }) {
-  return (
-    <div className="flex items-center gap-2 bg-md-surf2 border border-md-outline/60 rounded-2xl px-3 py-2.5">
-      <span className="text-base leading-none">{icon}</span>
-      <div className="min-w-0">
-        <div className={`text-sm font-bold leading-tight ${color}`}>{value}</div>
-        <div className="text-[10px] text-md-onsurfvar leading-tight mt-0.5">{label}</div>
-      </div>
-    </div>
-  )
+function readReaderState() {
+  try {
+    const raw = localStorage.getItem(READER_STATE_KEY)
+    const parsed = raw ? JSON.parse(raw) : {}
+    return parsed.completedSections || {}
+  } catch {
+    return {}
+  }
 }
 
-function ProgressBar({ value, color = 'from-md-primary to-md-secondary' }) {
-  return (
-    <div className="h-1.5 bg-md-surf3 rounded-full overflow-hidden">
-      <div
-        className={`h-full rounded-full bg-gradient-to-r ${color} prog-bar`}
-        style={{ width: `${value}%` }}
-      />
-    </div>
-  )
+function readLastReader() {
+  try {
+    const raw = localStorage.getItem(LAST_READER_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
 }
 
-export default function Dashboard({ onNavigate, user }) {
-  const [selectedYear, setSelectedYear] = useState(YEAR_LEVELS[0])
-  const [weeklyInfo, setWeeklyInfo] = useState({
-    loading: true,
-    hasSubmitted: false,
-    title: 'Weekly Law Challenge',
-    difficulty: 'medium',
-    questionCount: 8,
-    endsIn: 'Loading...',
-  })
+function masteryLabel(progress) {
+  if (progress >= 80) return 'Advanced'
+  if (progress >= 50) return 'Intermediate'
+  return 'Beginner'
+}
+
+export default function Dashboard({ onNavigate, onNavigatePath, user }) {
+  const [subjects, setSubjects] = useState([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let mounted = true
-
-    function computeEndsIn(endDate) {
-      const left = Math.max(0, new Date(endDate).getTime() - Date.now())
-      const days = Math.floor(left / (24 * 60 * 60 * 1000))
-      const hours = Math.floor((left % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000))
-      if (days > 0) return `${days}d ${hours}h`
-      const minutes = Math.floor((left % (60 * 60 * 1000)) / (60 * 1000))
-      return `${hours}h ${minutes}m`
-    }
-
-    fetchWeeklyChallenge()
-      .then((data) => {
+    setLoading(true)
+    fetchSubjectsByYearWithAccess(null)
+      .then(data => {
         if (!mounted) return
-        const source = data?.challenge || {}
-        setWeeklyInfo({
-          loading: false,
-          hasSubmitted: Boolean(data?.hasSubmitted),
-          title: source.title || 'Weekly Law Challenge',
-          difficulty: source.difficulty || 'medium',
-          questionCount: source.questionCount || 8,
-          endsIn: source.endDate ? computeEndsIn(source.endDate) : '7d',
-        })
+        setSubjects(data?.subjects || [])
       })
       .catch(() => {
-        if (!mounted) return
-        setWeeklyInfo((prev) => ({
-          ...prev,
-          loading: false,
-          endsIn: 'Unavailable',
-        }))
+        if (mounted) setSubjects([])
       })
-
+      .finally(() => {
+        if (mounted) setLoading(false)
+      })
     return () => { mounted = false }
   }, [])
 
+  const computed = useMemo(() => {
+    const completed = readReaderState()
+    return subjects.map(subject => {
+      const prefix = `${subject.id}:`
+      const keys = Object.keys(completed).filter(k => k.startsWith(prefix))
+      const completedCount = keys.length
+      const estimatedLessons = Math.max(6, Number(subject.chapterCount || 1) * 3)
+      const progress = Math.min(100, Math.round((completedCount / estimatedLessons) * 100))
+      const remaining = Math.max(0, estimatedLessons - completedCount)
+      return {
+        ...subject,
+        completedCount,
+        estimatedLessons,
+        remaining,
+        progress,
+      }
+    })
+      .sort((a, b) => {
+        if (a.completedCount > 0 && b.completedCount === 0) return -1
+        if (b.completedCount > 0 && a.completedCount === 0) return 1
+        return b.progress - a.progress
+      })
+  }, [subjects])
+
+  const lastReader = useMemo(() => readLastReader(), [])
+  const continueSubject = useMemo(() => {
+    if (!computed.length) return null
+    if (lastReader?.subjectId) {
+      const match = computed.find(s => s.id === lastReader.subjectId)
+      if (match) return match
+    }
+    return computed[0]
+  }, [computed, lastReader])
+
+  const continuePath = lastReader?.path || (continueSubject ? `/subject/${continueSubject.id}` : '/year/1')
+  const nextLesson = continueSubject ? `Chapter ${lastReader?.chapterId || 1}` : 'No lesson yet'
+  const todayGoalRemaining = Math.min(6, continueSubject?.remaining || 0)
+  const todayGoalMins = Math.max(20, todayGoalRemaining * 12)
+  const todayGoalPct = Math.max(10, Math.min(100, Math.round(((6 - todayGoalRemaining) / 6) * 100)))
+
   return (
-    <div className="px-4 pb-6 space-y-5">
-      {/* ── Hero banner ── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-700 to-purple-800 p-5 pt-7 mt-2 shadow-elev3">
-        {/* Decorative blobs */}
-        <div className="absolute -top-8 -right-8 w-40 h-40 bg-white/5 rounded-full blur-2xl" />
-        <div className="absolute bottom-0 left-10 w-24 h-24 bg-indigo-400/10 rounded-full blur-xl" />
+    <div className="px-4 pb-6 pt-3 bg-[radial-gradient(900px_350px_at_50%_-8%,rgba(245,158,11,0.12),transparent),radial-gradient(1200px_420px_at_10%_0%,rgba(15,23,42,0.78),transparent)] space-y-5">
+      <div className="text-[11px] uppercase tracking-[0.24em] text-orange-300/70">Lexis AI • Focus Dashboard</div>
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-medium text-indigo-200 bg-white/10 px-2.5 py-0.5 rounded-full">
-              May 3, 2026
-            </span>
-            <span className="text-xs font-medium text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
-              ● 3 new cases today
-            </span>
+      <section className="relative overflow-hidden rounded-3xl border border-[#27406f] bg-gradient-to-br from-[#0c1930] via-[#0a2340] to-[#10284c] p-6 shadow-[0_20px_50px_rgba(2,12,27,0.65)]">
+        <div className="absolute -top-10 -right-10 h-44 w-44 rounded-full bg-orange-400/10 blur-3xl" />
+        <div className="relative">
+          <div className="inline-flex items-center gap-2 rounded-full border border-orange-300/25 bg-orange-500/10 px-3 py-1 text-[11px] text-orange-200/90">
+            Continue Study
           </div>
-          <h1 className="text-2xl font-bold text-white mt-2">Welcome back, {user?.name?.split(' ')[0] || 'Alex'} 👋</h1>
-          <p className="text-indigo-200 text-sm mt-1">You're on a 12-day streak. Keep it up!</p>
+          <h1 className="mt-3 text-2xl md:text-3xl font-reader font-bold text-white leading-tight">
+            {continueSubject?.title || 'Load your first subject'}
+          </h1>
+          <p className="mt-2 text-sm text-blue-100/80">
+            Last lesson: {nextLesson} • {continueSubject?.progress || 0}% complete
+          </p>
 
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              onClick={() => onNavigate('study')}
-              className="ripple-root bg-white text-indigo-700 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-indigo-50 transition-colors shadow"
-            >
-              Continue Studying
-            </button>
-            <button
-              onClick={() => onNavigate('chat')}
-              className="ripple-root bg-white/10 border border-white/20 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-white/20 transition-colors"
-            >
-              Ask AI
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Stats row ── */}
-      <div className="grid grid-cols-4 gap-2">
-        {STATS.map(s => <StatCard key={s.label} {...s} />)}
-      </div>
-
-      {/* ── Weekly challenge event card ── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-cyan-700 via-blue-700 to-indigo-800 border border-white/10 p-4 shadow-elev3">
-        <div className="absolute -top-10 -right-8 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
-        <div className="relative z-10">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-xs text-cyan-100">Weekly Event</div>
-            <div className="text-[11px] text-cyan-100 bg-white/10 px-2 py-1 rounded-full border border-white/15">
-              Ends in {weeklyInfo.endsIn}
-            </div>
-          </div>
-          <h2 className="text-lg font-bold text-white mt-1">{weeklyInfo.title}</h2>
-          <div className="mt-2 flex items-center gap-2 text-[11px] text-cyan-100">
-            <span className="px-2 py-1 rounded-full bg-white/10 border border-white/15">{weeklyInfo.questionCount} questions</span>
-            <span className="px-2 py-1 rounded-full bg-white/10 border border-white/15">{weeklyInfo.difficulty}</span>
-            {weeklyInfo.hasSubmitted ? <span className="px-2 py-1 rounded-full bg-emerald-500/20 border border-emerald-300/30 text-emerald-100">Submitted</span> : null}
-          </div>
-          <div className="mt-3 h-1.5 bg-white/15 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-emerald-300 to-cyan-200" style={{ width: weeklyInfo.hasSubmitted ? '100%' : '42%' }} />
-          </div>
-          <button
-            onClick={() => onNavigate('weekly')}
-            disabled={weeklyInfo.loading}
-            className="mt-4 w-full h-10 rounded-xl bg-white text-indigo-700 font-semibold text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {weeklyInfo.hasSubmitted ? 'View Results and Leaderboard' : 'Start Challenge'}
-          </button>
-          <button
-            onClick={() => onNavigate('ranked')}
-            className="mt-2 w-full h-10 rounded-xl bg-white/15 border border-white/20 text-white font-semibold text-sm"
-          >
-            Find Ranked Match
-          </button>
-        </div>
-      </div>
-
-      {/* ── Quick actions ── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-md-onsurf">Quick Access</h2>
-        </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          {QUICK_ACTIONS.map(a => (
-            <button
-              key={a.view}
-              onClick={() => onNavigate(a.view)}
-              className={`ripple-root md-card bg-gradient-to-br ${a.grad} border ${a.border} rounded-2xl p-4 text-left flex flex-col gap-3`}
-            >
-              <span className="text-3xl">{a.icon}</span>
-              <div>
-                <div className="text-sm font-semibold text-md-onsurf">{a.label}</div>
-                <div className="text-xs text-md-onsurfvar mt-0.5">{a.desc}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Year-level module track ── */}
-      <div className="bg-md-surf2 border border-md-outline/60 rounded-3xl overflow-hidden">
-        {/* Tab bar */}
-        <div className="flex border-b border-md-outline/50 overflow-x-auto scrollbar-hide">
-          {YEAR_LEVELS.map(yr => (
-            <button
-              key={yr.id}
-              onClick={() => setSelectedYear(yr)}
-              className={`flex-1 min-w-[70px] py-3 text-xs font-semibold transition-colors whitespace-nowrap px-3 ${
-                selectedYear.id === yr.id
-                  ? 'text-md-primary border-b-2 border-md-primary bg-md-primary/5'
-                  : 'text-md-onsurfvar hover:text-md-onsurf'
-              }`}
-            >
-              {yr.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="p-4">
-          <p className="text-xs text-md-onsurfvar mb-4">{selectedYear.focus}</p>
-
-          <div className="space-y-3">
-            {selectedYear.modules.map((mod, i) => (
-              <div
-                key={mod.name}
-                className="animate-slide-up"
-                style={{ animationDelay: `${i * 50}ms` }}
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-semibold text-md-primary uppercase tracking-wider">{mod.subject}</div>
-                    <div className="text-sm font-medium text-md-onsurf mt-0.5 leading-snug">{mod.name}</div>
-                  </div>
-                  <span className="shrink-0 text-xs bg-md-surf3 border border-md-outline/60 text-md-onsurfvar px-2 py-0.5 rounded-full">
-                    {mod.lessons}L
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ProgressBar value={mod.progress} color={`from-${selectedYear.color.split('-')[1]}-500 to-${selectedYear.color.split('-')[3]}`} />
-                  <span className="text-[11px] font-semibold text-md-onsurfvar shrink-0 w-8 text-right">{mod.progress}%</span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={() => onNavigate('study')}
-            className="ripple-root mt-4 w-full py-2.5 rounded-xl bg-md-primarydim hover:bg-md-primary/80 text-white text-sm font-semibold transition-colors"
-          >
-            Open Study Mode
-          </button>
-        </div>
-      </div>
-
-      {/* ── Recent activity ── */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-md-onsurf">Recent Activity</h2>
-          <button className="text-xs text-md-primary font-medium">See all</button>
-        </div>
-        <div className="space-y-2">
-          {RECENT.map((r, i) => (
+          <div className="mt-4 h-2 rounded-full bg-white/10 overflow-hidden">
             <div
-              key={i}
-              className="md-card bg-md-surf2 border border-md-outline/50 rounded-2xl p-3.5 flex items-center gap-3"
+              className="h-full rounded-full bg-gradient-to-r from-orange-400 to-amber-300 transition-all duration-700"
+              style={{ width: `${continueSubject?.progress || 0}%` }}
+            />
+          </div>
+
+          <button
+            onClick={() => onNavigatePath?.(continuePath)}
+            className="mt-5 h-11 px-5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-400 text-[#111827] text-sm font-bold hover:brightness-105 transition"
+          >
+            Continue Study
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-md-outline/50 bg-[#111a2d]/80 p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-reader font-bold text-white">Today's Goal</h2>
+          <span className="text-[11px] text-orange-300">{todayGoalMins} mins</span>
+        </div>
+        <div className="mt-2 text-xs text-white/70">
+          {continueSubject?.title || 'Constitutional Law'} • {todayGoalRemaining} lessons remaining
+        </div>
+        <div className="mt-3 h-1.5 rounded-full bg-white/10 overflow-hidden">
+          <div className="h-full rounded-full bg-gradient-to-r from-[#f59e0b] to-[#fbbf24]" style={{ width: `${todayGoalPct}%` }} />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-md-outline/50 bg-[#0f172a]/85 p-4">
+        <h2 className="text-sm font-reader font-bold text-white mb-3">Progress Overview</h2>
+        <div className="space-y-3">
+          {loading && [1, 2, 3].map(idx => (
+            <div key={idx} className="skeleton h-11 w-full" />
+          ))}
+
+          {!loading && computed.slice(0, 5).map(subject => (
+            <button
+              key={subject.id}
+              onClick={() => onNavigatePath?.(`/subject/${subject.id}`)}
+              className="w-full text-left rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5 hover:bg-white/[0.05] transition-colors"
             >
-              <div className="w-10 h-10 rounded-xl bg-md-surf3 flex items-center justify-center text-xl shrink-0">
-                {r.icon}
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-white truncate">{subject.title}</span>
+                <span className="text-[10px] text-orange-300">{masteryLabel(subject.progress)}</span>
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-md-onsurf truncate">{r.title}</div>
-                <div className="text-xs text-md-onsurfvar mt-0.5">{r.tag}</div>
+              <div className="mt-1.5 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div className="h-full rounded-full bg-gradient-to-r from-blue-400 to-cyan-300" style={{ width: `${subject.progress}%` }} />
               </div>
-              <div className="text-[10px] text-md-onsurfvar shrink-0">{r.time}</div>
-            </div>
+            </button>
           ))}
         </div>
+      </section>
+
+      <section className="rounded-2xl border border-md-outline/50 bg-[#111827]/80 p-4">
+        <h2 className="text-sm font-reader font-bold text-white mb-3">Quick Actions</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <button onClick={() => onNavigate('study')} className="h-11 rounded-xl bg-blue-600/20 border border-blue-400/35 text-blue-100 text-xs font-semibold">Practice Quiz</button>
+          <button onClick={() => onNavigate('ranked')} className="h-11 rounded-xl bg-orange-500/20 border border-orange-400/35 text-orange-100 text-xs font-semibold">Battle Mode</button>
+          <button onClick={() => onNavigate('study')} className="h-11 rounded-xl bg-rose-500/20 border border-rose-400/35 text-rose-100 text-xs font-semibold">Review Weak Areas</button>
+        </div>
+      </section>
+
+      <div className="text-center text-[11px] text-white/35">
+        Welcome back, {user?.name?.split(' ')[0] || 'Counsel'}. One focused session at a time.
       </div>
     </div>
   )
