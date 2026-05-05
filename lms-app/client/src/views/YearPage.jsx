@@ -103,7 +103,9 @@ export default function YearPage({ yearId, onOpenSubject }) {
 
               <div className="mt-4 flex items-center justify-between text-xs">
                 <span className="text-md-onsurfvar">{subject.chapterCount} chapters</span>
-                <span className="font-semibold text-amber-300">PHP {Number(subject.price || 0).toLocaleString()}</span>
+                {access?.tier !== 'premium' && (
+                  <span className="font-semibold text-amber-300">PHP {Number(subject.price || 0).toLocaleString()}</span>
+                )}
               </div>
 
               <button
