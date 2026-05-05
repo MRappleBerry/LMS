@@ -4,6 +4,9 @@ const QUESTION_TIME_SECONDS = 35
 const TOTAL_QUESTIONS = 20
 const FIND_TIMEOUT_MS = 600000 // 10 minutes before bot fallback
 const ELO_RANGE = 100
+const BASE_RATING = 800
+const DIVISION_STEP = 50
+const MAJOR_TIERS = ['Bronze', 'Silver', 'Gold', 'Diamond']
 
 const userStore = new Map()
 const queue = []
@@ -159,8 +162,8 @@ function getOrCreateUser(profile = {}) {
       id,
       name: profile.name || 'Law Learner',
       avatar: profile.avatar || null,
-      rating: 1000,
-      rank: 'Scholar I',
+      rating: BASE_RATING,
+      rank: ratingToRank(BASE_RATING),
       wins: 0,
       losses: 0,
       draws: 0,
@@ -174,11 +177,14 @@ function getOrCreateUser(profile = {}) {
 }
 
 function ratingToRank(rating) {
-  if (rating >= 1800) return 'Justice Tier'
-  if (rating >= 1600) return 'Counsel Tier'
-  if (rating >= 1400) return 'Bar Ace Tier'
-  if (rating >= 1200) return 'Advocate Tier'
-  return 'Scholar I'
+  const safeRating = Number(rating || BASE_RATING)
+  const maxIndex = MAJOR_TIERS.length * 5 - 1
+  const rawIndex = Math.floor((safeRating - BASE_RATING) / DIVISION_STEP)
+  const ladderIndex = Math.max(0, Math.min(maxIndex, rawIndex))
+  const tierIndex = Math.floor(ladderIndex / 5)
+  const divisionOffset = ladderIndex % 5
+  const division = 5 - divisionOffset
+  return `${MAJOR_TIERS[tierIndex]} ${division}`
 }
 
 function expectedScore(ra, rb) {

@@ -10,6 +10,7 @@ const QUESTION_LIMIT = 20
 const QUESTION_TIME_MS = 35000
 const MATCH_FALLBACK_MS = 600000
 const CONNECT_TIMEOUT_MS = 20000
+const DEFAULT_ELO = 800
 
 const AVATAR_PRESETS = [
   { id: 'av-law-1', label: 'Justice', value: '⚖️' },
@@ -75,6 +76,16 @@ async function warmRealtimeServer() {
   }
 }
 
+function getRankedDeviceId() {
+  const key = 'lexisai.ranked.deviceId'
+  let value = localStorage.getItem(key)
+  if (!value) {
+    value = Math.random().toString(36).slice(2, 10)
+    localStorage.setItem(key, value)
+  }
+  return value
+}
+
 export default function RankedMatch({ user, onNavigate }) {
   const [profile, setProfile] = useState(null)
   const [mode, setMode] = useState('idle')
@@ -97,11 +108,14 @@ export default function RankedMatch({ user, onNavigate }) {
   const [searchStartedAt, setSearchStartedAt] = useState(0)
   const [searchElapsedMs, setSearchElapsedMs] = useState(0)
   const [preMatchLeftMs, setPreMatchLeftMs] = useState(0)
+  const [toast, setToast] = useState(null)
+  const [disconnectNotice, setDisconnectNotice] = useState('')
 
   const questionStartedAtRef = useRef(0)
   const tabSwitchCountRef = useRef(0)
   const fallbackTimerRef = useRef(null)
   const connectTimerRef = useRef(null)
+  const toastTimerRef = useRef(null)
   const offlineRef = useRef(null)
   const modeRef = useRef(mode)
   const audioCtxRef = useRef(null)
@@ -124,6 +138,15 @@ export default function RankedMatch({ user, onNavigate }) {
     if (music.master) music.master.disconnect()
 
     searchMusicRef.current = null
+  }
+
+  function showToast(message, tone = 'info') {
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
+    setToast({ message, tone })
+    toastTimerRef.current = window.setTimeout(() => {
+      setToast(null)
+      toastTimerRef.current = null
+    }, 3200)
   }
 
   async function startSearchMusic() {
@@ -207,8 +230,12 @@ export default function RankedMatch({ user, onNavigate }) {
   }, [mode])
 
   useEffect(() => {
+    const deviceId = getRankedDeviceId()
+    const accountId = user?.id || localStorage.getItem('lexisai.user.id') || 'guest'
+
     const safeProfile = {
-      userId: user?.id || localStorage.getItem('lexisai.user.id') || `guest-${Math.random().toString(36).slice(2, 8)}`,
+      // device-scoped ID allows same account on two phones to still match each other
+      userId: `${accountId}:${deviceId}`,
       name: user?.name || 'Law Learner',
       avatar: localStorage.getItem('lexisai.user.avatar') || user?.avatarUrl || '⚖️',
     }
@@ -321,7 +348,10 @@ export default function RankedMatch({ user, onNavigate }) {
       setSelectedChoiceId(null)
       setSubmittedQuestionIds({})
       setOpponent(null)
-      setStatusText(payload?.message || 'Opponent disconnected. Match aborted.')
+      const msg = payload?.message || 'Player has disconnected. Match aborted.'
+      setStatusText(msg)
+      showToast(msg, 'warning')
+      setDisconnectNotice(msg)
       setError('')
     }
 
@@ -364,6 +394,7 @@ export default function RankedMatch({ user, onNavigate }) {
       disconnectRankedSocket()
       if (fallbackTimerRef.current) window.clearTimeout(fallbackTimerRef.current)
       if (connectTimerRef.current) window.clearTimeout(connectTimerRef.current)
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
@@ -528,7 +559,7 @@ export default function RankedMatch({ user, onNavigate }) {
 
     setIsOfflineMode(true)
     setMatchId(generatedMatchId)
-    setOpponent({ userId: 'lexis-bot', name: 'Lexis Bot', avatar: '🤖', rating: Number(profile?.rating || 1000) + 20 })
+    setOpponent({ userId: 'lexis-bot', name: 'Lexis Bot', avatar: '🤖', rating: Number(profile?.rating || DEFAULT_ELO) + 20 })
     setMode('found')
     setStatusText('Bot fallback match found.')
     setProgress(`0/${QUESTION_LIMIT}`)
@@ -715,6 +746,33 @@ export default function RankedMatch({ user, onNavigate }) {
 
       <PlayerCard profile={profile} streak={streak} onAvatarClick={() => setShowAvatarPicker(true)} />
 
+      {toast ? (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-sm">
+          <div className={`rounded-2xl border px-4 py-3 shadow-xl backdrop-blur ${toast.tone === 'warning'
+            ? 'bg-amber-500/15 border-amber-300/40 text-amber-100'
+            : 'bg-cyan-500/15 border-cyan-300/40 text-cyan-100'}`}>
+            <div className="text-xs font-semibold uppercase tracking-wide opacity-90">Notification</div>
+            <div className="text-sm mt-0.5">{toast.message}</div>
+          </div>
+        </div>
+      ) : null}
+
+      {disconnectNotice ? (
+        <div className="fixed inset-0 z-50 bg-black/55 backdrop-blur-sm px-4 grid place-items-center">
+          <div className="w-full max-w-sm rounded-3xl border border-amber-300/45 bg-[#171224] p-4 shadow-xl">
+            <div className="text-[11px] uppercase tracking-wide text-amber-200/85">Match Alert</div>
+            <h3 className="text-base font-bold text-amber-100 mt-1">Player Disconnected</h3>
+            <p className="text-sm text-amber-50/90 mt-2">{disconnectNotice}</p>
+            <button
+              onClick={() => setDisconnectNotice('')}
+              className="mt-4 w-full h-10 rounded-xl bg-amber-500/20 border border-amber-300/40 text-amber-100 font-semibold"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {error ? <div className="text-sm text-rose-300">{error}</div> : null}
 
       {(mode === 'idle' || mode === 'searching') ? (
@@ -770,8 +828,8 @@ export default function RankedMatch({ user, onNavigate }) {
                 alt="Your avatar"
               />
               <div className="text-sm font-bold text-cyan-200 mt-2 truncate">{profile?.name || 'You'}</div>
-              <div className="text-xs text-cyan-100/70">ELO {profile?.rating || 1000}</div>
-              <div className="mt-1"><RankBadge rating={profile?.rating || 1000} compact /></div>
+              <div className="text-xs text-cyan-100/70">ELO {profile?.rating || DEFAULT_ELO}</div>
+              <div className="mt-1"><RankBadge rating={profile?.rating || DEFAULT_ELO} compact /></div>
             </div>
 
             <div className="text-center">
@@ -788,7 +846,7 @@ export default function RankedMatch({ user, onNavigate }) {
               />
               <div className="text-sm font-bold text-rose-200 mt-2 truncate">{opponent?.name || 'Opponent'}</div>
               <div className="text-xs text-rose-100/70">ELO {opponent?.rating || '???'}</div>
-              <div className="mt-1"><RankBadge rating={opponent?.rating || 1000} compact /></div>
+              <div className="mt-1"><RankBadge rating={opponent?.rating || DEFAULT_ELO} compact /></div>
             </div>
           </div>
         </div>
